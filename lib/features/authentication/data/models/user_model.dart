@@ -10,6 +10,7 @@ class UserModel extends AuthUser {
     required super.status,
     super.middleName,
     super.avatar,
+    super.phone,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) => UserModel(
@@ -21,5 +22,6 @@ class UserModel extends AuthUser {
     role: json['role'] as String? ?? '',
     status: json['status'] as String? ?? '',
     avatar: json['avatar'] as String?,
+    phone: json['phone'] as String?,
   );
 }

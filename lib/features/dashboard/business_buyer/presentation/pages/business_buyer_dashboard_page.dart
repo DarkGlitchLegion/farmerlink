@@ -1,0 +1,805 @@
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../../../core/services/api_client.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../../authentication/domain/entities/user.dart';
+import '../../../../authentication/presentation/providers/authentication_provider.dart';
+import '../../../presentation/widgets/dashboard_stat_card.dart';
+import '../../../shared/models/shopping_dashboard_models.dart';
+import '../../../shared/providers/shopping_dashboard_provider.dart';
+import '../../../shared/widgets/shopping_dashboard_widgets.dart';
+
+class BusinessBuyerDashboardPage extends ConsumerStatefulWidget {
+  const BusinessBuyerDashboardPage({super.key});
+
+  @override
+  ConsumerState<BusinessBuyerDashboardPage> createState() =>
+      _BusinessBuyerDashboardPageState();
+}
+
+class _BusinessBuyerDashboardPageState
+    extends ConsumerState<BusinessBuyerDashboardPage> {
+  int _tab = 0;
+  int? _categoryId;
+  String _query = '';
+  static const _role = 'business_buyer';
+
+  Future<void> _refresh() async {
+    try {
+      ref.invalidate(shoppingDashboardProvider(_role));
+      await ref.read(shoppingDashboardProvider(_role).future);
+    } catch (_) {}
+  }
+
+  Future<void> _signOut() async {
+    try {
+      await ref.read(authenticationProvider.notifier).logout();
+    } catch (_) {}
+    if (mounted) context.go('/login');
+  }
+
+  Future<void> _showNotifications(ShoppingDashboardData data) =>
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: AppColors.background,
+        builder: (context) => DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: .68,
+          maxChildSize: .9,
+          builder: (context, scrollController) => NotificationListSheet(
+            notifications: data.notifications,
+            onMarkRead: (id) async {
+              await ref
+                  .read(shoppingDashboardRepositoryProvider)
+                  .markNotificationRead(id);
+              ref.invalidate(shoppingDashboardProvider(_role));
+            },
+          ),
+        ),
+      );
+
+  Future<void> _placeBulkOrder(
+    ShoppingDashboardData data,
+    MarketProduct product,
+  ) async {
+    final batches = data.batches
+        .where(
+          (batch) =>
+              batch.productId == product.id &&
+              batch.farmerId == product.farmerId &&
+              batch.status == 'available' &&
+              batch.remainingQuantity > 0,
+        )
+        .toList();
+    if (batches.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'There is no available harvest batch for this listing.',
+          ),
+        ),
+      );
+      return;
+    }
+    final order = await showModalBottomSheet<ShoppingOrder>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.background,
+      builder: (context) => _BulkOrderSheet(
+        product: product,
+        batches: batches,
+        onSubmit: (batchId, quantity) => ref
+            .read(shoppingDashboardRepositoryProvider)
+            .createBulkOrder(
+              productId: product.id,
+              batchId: batchId,
+              quantity: quantity,
+            ),
+      ),
+    );
+    if (order == null || !mounted) return;
+    ref.invalidate(shoppingDashboardProvider(_role));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Order ${order.orderNumber} placed · ${order.status}'),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dashboard = ref.watch(shoppingDashboardProvider(_role));
+    return dashboard.when(
+      loading: () =>
+          Scaffold(body: ShoppingDashboardLoading(onRefresh: _refresh)),
+      error: (error, stackTrace) => Scaffold(
+        body: ShoppingDashboardFailure(
+          error: error,
+          onRetry: _refresh,
+          onSignIn: _signOut,
+        ),
+      ),
+      data: (data) => Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: _tab == 0
+            ? null
+            : AppBar(
+                backgroundColor: AppColors.background,
+                title: Text(
+                  _tabTitle,
+                  style: const TextStyle(
+                    color: AppColors.darkGreen,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                actions: [
+                  IconButton(
+                    tooltip: 'Notifications',
+                    onPressed: () => _showNotifications(data),
+                    icon: Badge(
+                      isLabelVisible: data.unreadNotifications > 0,
+                      label: Text('${data.unreadNotifications}'),
+                      child: const Icon(
+                        Icons.notifications_none_rounded,
+                        color: AppColors.primaryGreen,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Sign out',
+                    onPressed: _signOut,
+                    icon: const Icon(Icons.logout_rounded),
+                  ),
+                ],
+              ),
+        body: RefreshIndicator(
+          color: AppColors.primaryGreen,
+          onRefresh: _refresh,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.zero,
+            children: _tabContent(data),
+          ),
+        ),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: _tab,
+          onDestinationSelected: (index) => setState(() => _tab = index),
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.dashboard_outlined),
+              selectedIcon: Icon(Icons.dashboard_rounded),
+              label: 'Dashboard',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.inventory_2_outlined),
+              selectedIcon: Icon(Icons.inventory_2_rounded),
+              label: 'Wholesale',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.agriculture_outlined),
+              selectedIcon: Icon(Icons.agriculture_rounded),
+              label: 'Suppliers',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.receipt_long_outlined),
+              selectedIcon: Icon(Icons.receipt_long_rounded),
+              label: 'Orders',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.business_outlined),
+              selectedIcon: Icon(Icons.business_rounded),
+              label: 'Profile',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String get _tabTitle => const [
+    'Dashboard',
+    'Wholesale market',
+    'Suppliers',
+    'Orders',
+    'Business profile',
+  ][_tab];
+
+  List<Widget> _tabContent(ShoppingDashboardData data) => switch (_tab) {
+    0 => _homeContent(data),
+    1 => _marketContent(data),
+    2 => _suppliersContent(data),
+    3 => _ordersContent(data),
+    _ => _profileContent(data),
+  };
+
+  List<Widget> _homeContent(ShoppingDashboardData data) {
+    final products = _filteredProducts(data);
+    final suppliers = _farmers(data.productsInStock);
+    return [
+      ShoppingDashboardHeader(
+        user: data.user,
+        businessMode: true,
+        businessProfile: data.businessProfile,
+        unreadNotifications: data.unreadNotifications,
+        onNotifications: () => _showNotifications(data),
+        onSignOut: _signOut,
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const ShoppingSectionHeader(title: 'Procurement overview'),
+            const SizedBox(height: 12),
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisSpacing: 11,
+              mainAxisSpacing: 11,
+              childAspectRatio: 1.36,
+              children: [
+                DashboardStatCard(
+                  title: 'Active orders',
+                  value: '${data.activeOrders}',
+                  caption: 'Open and in-progress orders',
+                  icon: Icons.local_shipping_outlined,
+                ),
+                DashboardStatCard(
+                  title: 'Total purchased',
+                  value: formatShoppingPeso(data.paidPurchases),
+                  caption: 'Orders marked paid',
+                  icon: Icons.payments_outlined,
+                ),
+                DashboardStatCard(
+                  title: 'Available suppliers',
+                  value: '${data.availableSuppliers}',
+                  caption: 'Farmer IDs with active listings',
+                  icon: Icons.agriculture_outlined,
+                ),
+              ],
+            ),
+            const SizedBox(height: 19),
+            ShoppingSectionHeader(
+              title: 'Wholesale listings',
+              actionLabel: 'Browse all',
+              onAction: () => setState(() => _tab = 1),
+            ),
+            const SizedBox(height: 10),
+            if (products.isEmpty)
+              const ShoppingEmptyState(
+                title: 'No wholesale listings yet',
+                message:
+                    'Active products with available stock will be listed here.',
+              )
+            else
+              ...products
+                  .take(3)
+                  .map(
+                    (product) => MarketProductCard(
+                      key: ValueKey(product.id),
+                      product: product,
+                      businessMode: true,
+                      onBulkOrder: _hasBatch(data, product)
+                          ? () => _placeBulkOrder(data, product)
+                          : null,
+                    ),
+                  ),
+            const SizedBox(height: 11),
+            ShoppingSectionHeader(
+              title: 'Suppliers',
+              actionLabel: 'View all',
+              onAction: () => setState(() => _tab = 2),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Only farmer IDs are exposed in product listings. Public farm names and locations are not available.',
+              style: TextStyle(
+                color: AppColors.darkGreen.withValues(alpha: .57),
+                fontSize: 10.5,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 9),
+            if (suppliers.isEmpty)
+              const ShoppingEmptyState(
+                title: 'No suppliers with available listings',
+                message:
+                    'Supplier IDs appear when active products are available.',
+              )
+            else
+              ...suppliers.entries
+                  .take(3)
+                  .map(
+                    (entry) => SupplierSummaryCard(
+                      farmerId: entry.key,
+                      productCount: entry.value,
+                    ),
+                  ),
+            const SizedBox(height: 11),
+            ShoppingSectionHeader(
+              title: 'Recent orders',
+              actionLabel: 'All orders',
+              onAction: () => setState(() => _tab = 3),
+            ),
+            const SizedBox(height: 9),
+            if (data.recentOrders.isEmpty)
+              const ShoppingEmptyState(
+                title: 'No business orders yet',
+                message:
+                    'Orders placed by this business account will appear here.',
+                icon: Icons.receipt_long_outlined,
+              )
+            else
+              ...data.recentOrders
+                  .take(3)
+                  .map(
+                    (order) => ShoppingOrderCard(
+                      key: ValueKey(order.id),
+                      order: order,
+                    ),
+                  ),
+            const SizedBox(height: 25),
+          ],
+        ),
+      ),
+    ];
+  }
+
+  List<Widget> _marketContent(ShoppingDashboardData data) => [
+    Padding(
+      padding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Source produce for your business',
+            style: TextStyle(
+              color: AppColors.darkGreen,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 13),
+          MarketSearchField(
+            onChanged: (value) => setState(() => _query = value),
+          ),
+          const SizedBox(height: 12),
+          CategoryFilters(
+            categories: data.categories,
+            selectedId: _categoryId,
+            onSelected: (value) => setState(() => _categoryId = value),
+          ),
+          const SizedBox(height: 18),
+          ShoppingSectionHeader(
+            title: '${_filteredProducts(data).length} available listings',
+          ),
+          const SizedBox(height: 10),
+          if (_filteredProducts(data).isEmpty)
+            const ShoppingEmptyState(
+              title: 'No matching listings',
+              message: 'Try a different product search or category.',
+              icon: Icons.search_off_rounded,
+            )
+          else
+            ..._filteredProducts(data).map(
+              (product) => MarketProductCard(
+                key: ValueKey(product.id),
+                product: product,
+                businessMode: true,
+                onBulkOrder: _hasBatch(data, product)
+                    ? () => _placeBulkOrder(data, product)
+                    : null,
+              ),
+            ),
+          const SizedBox(height: 20),
+        ],
+      ),
+    ),
+  ];
+
+  List<Widget> _suppliersContent(ShoppingDashboardData data) {
+    final suppliers = _farmers(data.productsInStock);
+    return [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const ShoppingEmptyState(
+              title: 'Supplier identity is limited',
+              message: 'The marketplace exposes farmer IDs through product listings, but does not provide public supplier profiles, locations, or verification details.',
+              icon: Icons.info_outline_rounded,
+            ),
+            const SizedBox(height: 15),
+            const ShoppingSectionHeader(title: 'Farmers with active listings'),
+            const SizedBox(height: 10),
+            if (suppliers.isEmpty)
+              const ShoppingEmptyState(
+                title: 'No suppliers available',
+                message:
+                    'Active product listings will identify their farmer IDs.',
+              )
+            else
+              ...suppliers.entries.map(
+                (entry) => SupplierSummaryCard(
+                  farmerId: entry.key,
+                  productCount: entry.value,
+                ),
+              ),
+          ],
+        ),
+      ),
+    ];
+  }
+
+  List<Widget> _ordersContent(ShoppingDashboardData data) => [
+    Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const ShoppingSectionHeader(title: 'Purchase overview'),
+          const SizedBox(height: 11),
+          Row(
+            children: [
+              Expanded(
+                child: DashboardStatCard(
+                  title: 'Active orders',
+                  value: '${data.activeOrders}',
+                  caption: 'Open and in-progress',
+                  icon: Icons.local_shipping_outlined,
+                ),
+              ),
+              const SizedBox(width: 11),
+              Expanded(
+                child: DashboardStatCard(
+                  title: 'Completed',
+                  value: '${data.completedOrders}',
+                  caption: 'Delivered orders',
+                  icon: Icons.task_alt_rounded,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          const ShoppingSectionHeader(title: 'Business order history'),
+          const SizedBox(height: 10),
+          if (data.recentOrders.isEmpty)
+            const ShoppingEmptyState(
+              title: 'No orders yet',
+              message: 'Business orders will appear here.',
+              icon: Icons.receipt_long_outlined,
+            )
+          else
+            ...data.recentOrders.map(
+              (order) =>
+                  ShoppingOrderCard(key: ValueKey(order.id), order: order),
+            ),
+        ],
+      ),
+    ),
+  ];
+
+  List<Widget> _profileContent(ShoppingDashboardData data) => [
+    Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const ShoppingSectionHeader(title: 'Business account'),
+          const SizedBox(height: 11),
+          _BusinessAccountCard(user: data.user, profile: data.businessProfile),
+          if (data.businessProfile == null) ...[
+            const SizedBox(height: 12),
+            const ShoppingEmptyState(
+              title: 'Business profile not found',
+              message: 'The authenticated account has no business profile response yet.',
+              icon: Icons.business_outlined,
+            ),
+          ],
+          const SizedBox(height: 13),
+          OutlinedButton.icon(
+            onPressed: _signOut,
+            icon: const Icon(Icons.logout_rounded),
+            label: const Text('Sign out'),
+          ),
+        ],
+      ),
+    ),
+  ];
+
+  List<MarketProduct> _filteredProducts(
+    ShoppingDashboardData data,
+  ) => data.productsInStock.where((product) {
+    final matchesCategory =
+        _categoryId == null || product.categoryId == _categoryId;
+    final searchable = '${product.name} ${product.variety ?? ''}'.toLowerCase();
+    return matchesCategory && searchable.contains(_query.trim().toLowerCase());
+  }).toList();
+
+  bool _hasBatch(ShoppingDashboardData data, MarketProduct product) =>
+      data.batches.any(
+        (batch) =>
+            batch.productId == product.id &&
+            batch.farmerId == product.farmerId &&
+            batch.status == 'available' &&
+            batch.remainingQuantity > 0,
+      );
+
+  Map<int, int> _farmers(List<MarketProduct> products) {
+    final result = <int, int>{};
+    for (final product in products) {
+      result.update(product.farmerId, (count) => count + 1, ifAbsent: () => 1);
+    }
+    return result;
+  }
+}
+
+class _BusinessAccountCard extends StatelessWidget {
+  const _BusinessAccountCard({required this.user, this.profile});
+  final AuthUser user;
+  final BusinessProfileData? profile;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(17),
+      border: Border.all(color: const Color(0xFFE6EBDD)),
+    ),
+    child: Column(
+      children: [
+        _BusinessRow(
+          label: 'Business',
+          value: profile?.businessName ?? user.fullName,
+        ),
+        _BusinessRow(label: 'Account name', value: user.fullName),
+        _BusinessRow(label: 'Email', value: user.email),
+        _BusinessRow(
+          label: 'Phone',
+          value: user.phone?.isNotEmpty == true ? user.phone! : 'Not provided',
+        ),
+        if (profile != null) ...[
+          _BusinessRow(label: 'Business type', value: profile!.businessType),
+          _BusinessRow(label: 'Address', value: profile!.businessAddress),
+          _BusinessRow(label: 'Province', value: profile!.province),
+          _BusinessRow(label: 'Contact person', value: profile!.contactPerson),
+          _BusinessRow(
+            label: 'Verification',
+            value: profile!.verificationStatus,
+          ),
+        ],
+        _BusinessRow(label: 'Account status', value: user.status),
+      ],
+    ),
+  );
+}
+
+class _BusinessRow extends StatelessWidget {
+  const _BusinessRow({required this.label, required this.value});
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: AppColors.darkGreen.withValues(alpha: .58),
+              fontSize: 11.5,
+            ),
+          ),
+        ),
+        Flexible(
+          child: Text(
+            value.isEmpty ? 'Not provided' : value,
+            textAlign: TextAlign.end,
+            style: const TextStyle(
+              color: AppColors.darkGreen,
+              fontWeight: FontWeight.w700,
+              fontSize: 11.5,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _BulkOrderSheet extends StatefulWidget {
+  const _BulkOrderSheet({
+    required this.product,
+    required this.batches,
+    required this.onSubmit,
+  });
+  final MarketProduct product;
+  final List<AvailableHarvestBatch> batches;
+  final Future<ShoppingOrder> Function(int batchId, int quantity) onSubmit;
+
+  @override
+  State<_BulkOrderSheet> createState() => _BulkOrderSheetState();
+}
+
+class _BulkOrderSheetState extends State<_BulkOrderSheet> {
+  late int _batchId = widget.batches.first.id;
+  late final TextEditingController _quantity = TextEditingController(
+    text: '${widget.product.minimumOrderQuantity}',
+  );
+  String? _error;
+  bool _submitting = false;
+
+  AvailableHarvestBatch get _batch =>
+      widget.batches.firstWhere((batch) => batch.id == _batchId);
+  int get _maximum =>
+      math.min(widget.product.availableQuantity, _batch.remainingQuantity);
+
+  @override
+  void dispose() {
+    _quantity.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final amount = int.tryParse(_quantity.text);
+    if (amount == null || amount < widget.product.minimumOrderQuantity) {
+      setState(
+        () => _error =
+            'Enter at least ${widget.product.minimumOrderQuantity} ${widget.product.unit}.',
+      );
+      return;
+    }
+    if (amount > _maximum) {
+      setState(
+        () => _error =
+            'This batch has at most $_maximum ${widget.product.unit} available.',
+      );
+      return;
+    }
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
+    try {
+      final order = await widget.onSubmit(_batchId, amount);
+      if (mounted) Navigator.pop(context, order);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _error = error is ApiException && error.statusCode == 401
+            ? 'Your session expired. Sign in again before placing an order.'
+            : error is ApiException &&
+                  (error.statusCode == 409 || error.statusCode == 422)
+            ? error.message
+            : 'The order could not be placed. Please try again.';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(20, 18, 20, 20 + keyboardInset),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Place bulk order',
+                style: const TextStyle(
+                  color: AppColors.darkGreen,
+                  fontSize: 19,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '${widget.product.name} · ${formatShoppingPeso(widget.product.pricePerUnit)} / ${widget.product.unit}',
+                style: TextStyle(
+                  color: AppColors.darkGreen.withValues(alpha: .65),
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(height: 18),
+              DropdownButtonFormField<int>(
+                initialValue: _batchId,
+                decoration: const InputDecoration(
+                  labelText: 'Available harvest batch',
+                  border: OutlineInputBorder(),
+                ),
+                items: widget.batches
+                    .map(
+                      (batch) => DropdownMenuItem(
+                        value: batch.id,
+                        child: Text(
+                          '${batch.batchCode} · ${batch.remainingQuantity} ${widget.product.unit} left',
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: _submitting
+                    ? null
+                    : (value) {
+                        if (value == null) return;
+                        setState(() {
+                          _batchId = value;
+                          _error = null;
+                        });
+                      },
+              ),
+              const SizedBox(height: 13),
+              TextField(
+                controller: _quantity,
+                enabled: !_submitting,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Quantity (${widget.product.unit})',
+                  helperText:
+                      'Minimum ${widget.product.minimumOrderQuantity} · Maximum $_maximum',
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 7),
+              Text(
+                'Fulfillment: pickup',
+                style: TextStyle(
+                  color: AppColors.darkGreen.withValues(alpha: .64),
+                  fontSize: 11,
+                ),
+              ),
+              if (_error != null) ...[
+                const SizedBox(height: 10),
+                Text(
+                  _error!,
+                  style: const TextStyle(
+                    color: Color(0xFF9B1C1C),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed:
+                      _submitting ||
+                          widget.product.minimumOrderQuantity > _maximum
+                      ? null
+                      : _submit,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primaryGreen,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: _submitting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('Confirm order'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

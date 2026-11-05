@@ -7,6 +7,8 @@ import '../../features/authentication/presentation/pages/role_dashboard_page.dar
 import '../../features/authentication/presentation/pages/splash_gate_page.dart';
 import '../../features/authentication/presentation/providers/authentication_provider.dart';
 import '../../features/dashboard/presentation/pages/farmer_dashboard_page.dart';
+import '../../features/dashboard/buyer/presentation/pages/buyer_dashboard_page.dart';
+import '../../features/dashboard/business_buyer/presentation/pages/business_buyer_dashboard_page.dart';
 
 String roleDashboardLocation(String role) => switch (role) {
   'farmer' => '/dashboard/farmer',
@@ -56,12 +58,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/dashboard/buyer',
-        builder: (context, state) => const RoleDashboardPage(role: 'buyer'),
+        builder: (context, state) => const BuyerDashboardPage(),
       ),
       GoRoute(
         path: '/dashboard/business-buyer',
-        builder: (context, state) =>
-            const RoleDashboardPage(role: 'business_buyer'),
+        builder: (context, state) => const BusinessBuyerDashboardPage(),
       ),
       GoRoute(
         path: '/dashboard/admin',

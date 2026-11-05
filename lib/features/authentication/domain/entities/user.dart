@@ -8,6 +8,7 @@ class AuthUser {
     required this.status,
     this.middleName = '',
     this.avatar,
+    this.phone,
   });
 
   final int id;
@@ -18,6 +19,7 @@ class AuthUser {
   final String role;
   final String status;
   final String? avatar;
+  final String? phone;
 
   String get fullName => [
     firstName,
