@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:farmerlink/core/services/api_client.dart';
+import 'package:farmerlink/core/permissions/user_role.dart';
 import 'package:farmerlink/core/services/harvest_batches_service.dart';
 import 'package:farmerlink/core/services/order_service.dart';
 import 'package:farmerlink/core/services/product_service.dart';
@@ -98,7 +99,11 @@ void main() {
             return http.Response('{}', 404);
         }
       });
-      final api = ApiClient(client: client);
+      final api = ApiClient(
+        client: client,
+        token: 'farmer-test-token',
+        role: UserRole.farmer,
+      );
       final data = await _source(api).load(user);
 
       expect(data.profile?.farmName, 'Ana’s Farm');
@@ -125,7 +130,13 @@ void main() {
         }
         return _json(<dynamic>[]);
       });
-      final data = await _source(ApiClient(client: client)).load(user);
+      final data = await _source(
+        ApiClient(
+          client: client,
+          token: 'farmer-test-token',
+          role: UserRole.farmer,
+        ),
+      ).load(user);
 
       expect(data.profile, isNull);
       expect(data.availableBatches, isEmpty);
@@ -150,7 +161,13 @@ void main() {
       });
 
       await expectLater(
-        _source(ApiClient(client: client)).load(user),
+        _source(
+          ApiClient(
+            client: client,
+            token: 'farmer-test-token',
+            role: UserRole.farmer,
+          ),
+        ).load(user),
         throwsA(
           isA<ApiException>().having(
             (error) => error.statusCode,

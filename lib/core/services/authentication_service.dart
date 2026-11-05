@@ -1,6 +1,7 @@
 import 'package:http/http.dart' as http;
 
 import 'api_client.dart';
+import '../permissions/user_role.dart';
 
 class AuthenticationService {
   AuthenticationService({ApiClient? api}) : _api = api ?? ApiClient.instance;
@@ -31,4 +32,6 @@ class AuthenticationService {
   Future<dynamic> getCurrentUser() => _api.get('/users/me');
 
   void setToken(String? token) => _api.token = token;
+
+  void setRole(String? role) => _api.role = UserRole.tryParse(role);
 }

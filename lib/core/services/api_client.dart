@@ -4,10 +4,12 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 
 import '../config/environment.dart';
+import '../permissions/api_permission_checker.dart';
+import '../permissions/user_role.dart';
 
 /// Shared HTTP client for the FarmerLink API.
 class ApiClient {
-  ApiClient({http.Client? client, String? baseUrl, this.token})
+  ApiClient({http.Client? client, String? baseUrl, this.token, this.role})
     : _client = client ?? http.Client(),
       baseUrl = (baseUrl ?? Environment.apiUrl).replaceFirst(RegExp(r'/$'), '');
 
@@ -16,6 +18,17 @@ class ApiClient {
   final http.Client _client;
   final String baseUrl;
   String? token;
+  UserRole? role;
+  Future<void> Function()? onUnauthorized;
+  final ApiPermissionChecker _permissionChecker = const ApiPermissionChecker();
+
+  void setAccessContext({required String? token, required String? role}) {
+    this.token = token;
+    this.role = UserRole.tryParse(role);
+  }
+
+  void _check(String method, String path, {Object? body}) => _permissionChecker
+      .check(method: method, path: path, token: token, role: role, body: body);
 
   Map<String, String> _headers({String? token, bool json = true}) => {
     if (json) 'Content-Type': 'application/json',
@@ -43,26 +56,39 @@ class ApiClient {
     String path, {
     Map<String, dynamic>? query,
     String? token,
-  }) => _send(_client.get(_uri(path, query), headers: _headers(token: token)));
+  }) {
+    _check('GET', path);
+    return _send(
+      _client.get(_uri(path, query), headers: _headers(token: token)),
+    );
+  }
 
-  Future<dynamic> post(String path, {Object? body, String? token}) => _send(
-    _client.post(
-      _uri(path),
-      headers: _headers(token: token),
-      body: jsonEncode(body ?? {}),
-    ),
-  );
+  Future<dynamic> post(String path, {Object? body, String? token}) {
+    _check('POST', path, body: body);
+    return _send(
+      _client.post(
+        _uri(path),
+        headers: _headers(token: token),
+        body: jsonEncode(body ?? {}),
+      ),
+    );
+  }
 
-  Future<dynamic> patch(String path, {Object? body, String? token}) => _send(
-    _client.patch(
-      _uri(path),
-      headers: _headers(token: token),
-      body: jsonEncode(body ?? {}),
-    ),
-  );
+  Future<dynamic> patch(String path, {Object? body, String? token}) {
+    _check('PATCH', path, body: body);
+    return _send(
+      _client.patch(
+        _uri(path),
+        headers: _headers(token: token),
+        body: jsonEncode(body ?? {}),
+      ),
+    );
+  }
 
-  Future<dynamic> delete(String path, {String? token}) =>
-      _send(_client.delete(_uri(path), headers: _headers(token: token)));
+  Future<dynamic> delete(String path, {String? token}) {
+    _check('DELETE', path);
+    return _send(_client.delete(_uri(path), headers: _headers(token: token)));
+  }
 
   Future<dynamic> postMultipart(
     String path, {
@@ -70,6 +96,7 @@ class ApiClient {
     http.MultipartFile? file,
     String? token,
   }) async {
+    _check('POST', path, body: fields);
     final request = http.MultipartRequest('POST', _uri(path));
     request.headers.addAll(_headers(token: token, json: false));
     request.fields.addAll(fields);
@@ -93,6 +120,13 @@ class ApiClient {
       }
     }
     if (response.statusCode < 200 || response.statusCode >= 300) {
+      if (response.statusCode == 401 && onUnauthorized != null) {
+        try {
+          await onUnauthorized!.call();
+        } catch (_) {
+          // Preserve the original API response as the surfaced error.
+        }
+      }
       final detail = data is Map ? (data['detail'] ?? data['message']) : null;
       throw ApiException(response.statusCode, _formatDetail(detail, text));
     }

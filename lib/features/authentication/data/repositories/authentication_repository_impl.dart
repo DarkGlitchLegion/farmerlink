@@ -32,8 +32,10 @@ class AuthenticationRepositoryImpl implements AuthenticationRepository {
     try {
       await _tokenStorage.write(response.accessToken);
       _remote.setToken(response.accessToken);
+      _remote.setRole(response.user.role);
     } catch (_) {
       _remote.setToken(null);
+      _remote.setRole(null);
       rethrow;
     }
     return (user: response.user, token: response.accessToken);
@@ -80,14 +82,14 @@ class AuthenticationRepositoryImpl implements AuthenticationRepository {
       if (result is! Map) {
         throw const FormatException('Invalid current user response.');
       }
-      return (
-        user: UserModel.fromJson(Map<String, dynamic>.from(result)),
-        token: token,
-      );
+      final user = UserModel.fromJson(Map<String, dynamic>.from(result));
+      _remote.setRole(user.role);
+      return (user: user, token: token);
     } on ApiException catch (error) {
       if (error.statusCode == 401) await logout();
       rethrow;
     } catch (_) {
+      _remote.setRole(null);
       rethrow;
     }
   }
@@ -95,6 +97,7 @@ class AuthenticationRepositoryImpl implements AuthenticationRepository {
   @override
   Future<void> logout() async {
     _remote.setToken(null);
+    _remote.setRole(null);
     await _tokenStorage.delete();
   }
 }

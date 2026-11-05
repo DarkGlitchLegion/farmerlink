@@ -23,7 +23,8 @@ String? appRouteRedirect(AuthenticationState auth, String location) {
   final isDashboard = location.startsWith('/dashboard/');
   if (auth.isAuthenticated) {
     final destination = roleDashboardLocation(auth.user!.role);
-    if (isAuthPage || (isDashboard && location != destination)) {
+    if (destination != '/login' &&
+        (isAuthPage || (isDashboard && location != destination))) {
       return destination;
     }
   } else if (isDashboard) {
@@ -70,6 +71,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+  ref.listen(authenticationProvider, (previous, next) => router.refresh());
   ref.onDispose(router.dispose);
   return router;
 });

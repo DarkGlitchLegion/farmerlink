@@ -68,7 +68,10 @@ final authenticationProvider =
 
 class AuthenticationController extends Notifier<AuthenticationState> {
   @override
-  AuthenticationState build() => const AuthenticationState();
+  AuthenticationState build() {
+    ApiClient.instance.onUnauthorized = _handleUnauthorized;
+    return const AuthenticationState();
+  }
 
   AuthenticationRepository get _repository =>
       ref.read(authenticationRepositoryProvider);
@@ -167,6 +170,18 @@ class AuthenticationController extends Notifier<AuthenticationState> {
       state = const AuthenticationState(
         status: AuthenticationStatus.unauthenticated,
       );
+    }
+  }
+
+  Future<void> _handleUnauthorized() async {
+    if (state.isAuthenticated || state.status == AuthenticationStatus.loading) {
+      try {
+        await _repository.logout();
+      } finally {
+        state = const AuthenticationState(
+          status: AuthenticationStatus.unauthenticated,
+        );
+      }
     }
   }
 

@@ -300,6 +300,9 @@ class _FakeRemote implements AuthenticationRemoteDataSource {
 
   @override
   void setToken(String? token) => this.token = token;
+
+  @override
+  void setRole(String? role) {}
 }
 
 class _MemoryTokenStorage implements TokenStorage {

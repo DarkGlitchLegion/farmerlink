@@ -33,4 +33,6 @@ class AuthenticationRemoteDataSource {
   Future<dynamic> currentUser() => _service.getCurrentUser();
 
   void setToken(String? token) => _service.setToken(token);
+
+  void setRole(String? role) => _service.setRole(role);
 }

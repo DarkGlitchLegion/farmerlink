@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:farmerlink/core/services/api_client.dart';
+import 'package:farmerlink/core/permissions/user_role.dart';
 import 'package:farmerlink/core/services/category_service.dart';
 import 'package:farmerlink/core/services/harvest_batches_service.dart';
 import 'package:farmerlink/core/services/notification_service.dart';
@@ -34,6 +35,8 @@ void main() {
   test('buyer dashboard loads only supported buyer endpoints and filters own orders', () async {
     final paths = <String>[];
     final api = ApiClient(
+      token: 'buyer-test-token',
+      role: UserRole.buyer,
       client: MockClient((request) async {
         paths.add(request.url.path);
         switch (request.url.path) {
@@ -102,6 +105,8 @@ void main() {
 
   test('business dashboard loads its profile and available batches for real bulk orders', () async {
     final api = ApiClient(
+      token: 'business-test-token',
+      role: UserRole.businessBuyer,
       client: MockClient((request) async {
         switch (request.url.path) {
           case '/api/v1/products':
@@ -146,6 +151,8 @@ void main() {
     () async {
       final calls = <http.Request>[];
       final api = ApiClient(
+        token: 'business-test-token',
+        role: UserRole.businessBuyer,
         client: MockClient((request) async {
           calls.add(request);
           if (request.url.path == '/api/v1/orders') {
