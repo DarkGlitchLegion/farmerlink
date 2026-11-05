@@ -6,6 +6,7 @@ import '../../features/authentication/presentation/pages/register_page.dart';
 import '../../features/authentication/presentation/pages/role_dashboard_page.dart';
 import '../../features/authentication/presentation/pages/splash_gate_page.dart';
 import '../../features/authentication/presentation/providers/authentication_provider.dart';
+import '../../features/dashboard/presentation/pages/farmer_dashboard_page.dart';
 
 String roleDashboardLocation(String role) => switch (role) {
   'farmer' => '/dashboard/farmer',
@@ -15,28 +16,32 @@ String roleDashboardLocation(String role) => switch (role) {
   _ => '/login',
 };
 
+String? appRouteRedirect(AuthenticationState auth, String location) {
+  final isAuthPage = location == '/login' || location == '/register';
+  final isDashboard = location.startsWith('/dashboard/');
+  if (auth.isAuthenticated) {
+    final destination = roleDashboardLocation(auth.user!.role);
+    if (isAuthPage || (isDashboard && location != destination)) {
+      return destination;
+    }
+  } else if (isDashboard) {
+    if (auth.status == AuthenticationStatus.initial ||
+        auth.status == AuthenticationStatus.loading) {
+      return '/';
+    }
+    return '/login';
+  }
+  return null;
+}
+
 final appRouterProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
     initialLocation: '/',
     redirect: (context, routeState) {
-      final auth = ref.read(authenticationProvider);
-      final location = routeState.matchedLocation;
-      final isAuthPage = location == '/login' || location == '/register';
-      final isDashboard = location.startsWith('/dashboard/');
-
-      if (auth.isAuthenticated) {
-        final destination = roleDashboardLocation(auth.user!.role);
-        if (isAuthPage || (isDashboard && location != destination)) {
-          return destination;
-        }
-      } else if (isDashboard) {
-        if (auth.status == AuthenticationStatus.initial ||
-            auth.status == AuthenticationStatus.loading) {
-          return '/';
-        }
-        return '/login';
-      }
-      return null;
+      return appRouteRedirect(
+        ref.read(authenticationProvider),
+        routeState.matchedLocation,
+      );
     },
     routes: [
       GoRoute(path: '/', builder: (context, state) => const SplashGatePage()),
@@ -47,7 +52,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/dashboard/farmer',
-        builder: (context, state) => const RoleDashboardPage(role: 'farmer'),
+        builder: (context, state) => const FarmerDashboardPage(),
       ),
       GoRoute(
         path: '/dashboard/buyer',

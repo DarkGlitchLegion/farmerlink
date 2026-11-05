@@ -26,6 +26,38 @@ void main() {
     expect(roleDashboardLocation('admin'), '/dashboard/admin');
   });
 
+  test(
+    'router guard protects dashboards and redirects authenticated roles',
+    () {
+      const unauthenticated = AuthenticationState(
+        status: AuthenticationStatus.unauthenticated,
+      );
+      const initial = AuthenticationState(status: AuthenticationStatus.initial);
+      const farmer = AuthUser(
+        id: 5,
+        firstName: 'Farmer',
+        lastName: 'One',
+        email: 'farmer@example.com',
+        role: 'farmer',
+        status: 'active',
+      );
+      const authenticated = AuthenticationState(
+        status: AuthenticationStatus.authenticated,
+        user: farmer,
+        token: 'token',
+      );
+
+      expect(appRouteRedirect(unauthenticated, '/dashboard/farmer'), '/login');
+      expect(appRouteRedirect(initial, '/dashboard/farmer'), '/');
+      expect(appRouteRedirect(authenticated, '/login'), '/dashboard/farmer');
+      expect(
+        appRouteRedirect(authenticated, '/dashboard/buyer'),
+        '/dashboard/farmer',
+      );
+      expect(appRouteRedirect(authenticated, '/dashboard/farmer'), isNull);
+    },
+  );
+
   test('client turns FastAPI validation details into field messages', () async {
     final client = ApiClient(
       client: MockClient(
