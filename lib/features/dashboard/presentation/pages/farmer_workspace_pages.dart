@@ -26,8 +26,8 @@ class FarmerNavigationShell extends StatelessWidget {
 
   static const _destinations = [
     IconOnlyNavigationItem(
-      icon: Icons.dashboard_outlined,
-      activeIcon: Icons.dashboard,
+      icon: Icons.home_outlined,
+      activeIcon: Icons.home_rounded,
     ),
     IconOnlyNavigationItem(
       icon: Icons.inventory_2_outlined,

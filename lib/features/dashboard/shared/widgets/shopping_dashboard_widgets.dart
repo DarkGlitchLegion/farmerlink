@@ -259,11 +259,13 @@ class MarketProductCard extends StatelessWidget {
     required this.product,
     required this.businessMode,
     this.onBulkOrder,
+    this.onOrder,
     this.onTap,
   });
   final MarketProduct product;
   final bool businessMode;
   final VoidCallback? onBulkOrder;
+  final VoidCallback? onOrder;
   final VoidCallback? onTap;
 
   @override
@@ -384,13 +386,15 @@ class MarketProductCard extends StatelessWidget {
               ],
             ),
           ),
-          if (businessMode) ...[
+          if (businessMode || onOrder != null) ...[
             const SizedBox(width: 9),
             IconButton.filledTonal(
-              tooltip: onBulkOrder == null
-                  ? 'No available harvest batch'
-                  : 'Place bulk order',
-              onPressed: onBulkOrder,
+              tooltip: businessMode
+                  ? onBulkOrder == null
+                        ? 'No available harvest batch'
+                        : 'Place bulk order'
+                  : 'Place order',
+              onPressed: businessMode ? onBulkOrder : onOrder,
               icon: const Icon(Icons.add_shopping_cart_rounded, size: 18),
               style: IconButton.styleFrom(
                 foregroundColor: AppColors.primaryGreen,

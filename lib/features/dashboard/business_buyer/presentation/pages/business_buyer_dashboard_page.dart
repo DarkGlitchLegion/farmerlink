@@ -188,16 +188,12 @@ class _BusinessBuyerDashboardPageState
           onSelected: (index) => setState(() => _tab = index),
           items: const [
             IconOnlyNavigationItem(
-              icon: Icons.dashboard_outlined,
-              activeIcon: Icons.dashboard_rounded,
+              icon: Icons.home_outlined,
+              activeIcon: Icons.home_rounded,
             ),
             IconOnlyNavigationItem(
               icon: Icons.storefront_outlined,
               activeIcon: Icons.storefront_rounded,
-            ),
-            IconOnlyNavigationItem(
-              icon: Icons.people_outline,
-              activeIcon: Icons.people_rounded,
             ),
             IconOnlyNavigationItem(
               icon: Icons.receipt_long_outlined,
@@ -213,19 +209,12 @@ class _BusinessBuyerDashboardPageState
     );
   }
 
-  String get _tabTitle => const [
-    'Dashboard',
-    'Wholesale market',
-    'Suppliers',
-    'Orders',
-    'Business profile',
-  ][_tab];
+  String get _tabTitle => const ['Home', 'Market', 'Orders', 'Profile'][_tab];
 
   List<Widget> _tabContent(ShoppingDashboardData data) => switch (_tab) {
     0 => _homeContent(data),
     1 => _marketContent(data),
-    2 => _suppliersContent(data),
-    3 => _ordersContent(data),
+    2 => _ordersContent(data),
     _ => _profileContent(data),
   };
 
@@ -306,8 +295,8 @@ class _BusinessBuyerDashboardPageState
             const SizedBox(height: 11),
             ShoppingSectionHeader(
               title: 'Suppliers',
-              actionLabel: 'View all',
-              onAction: () => setState(() => _tab = 2),
+              actionLabel: 'See market',
+              onAction: () => setState(() => _tab = 1),
             ),
             const SizedBox(height: 6),
             Text(
@@ -338,7 +327,7 @@ class _BusinessBuyerDashboardPageState
             ShoppingSectionHeader(
               title: 'Recent orders',
               actionLabel: 'All orders',
-              onAction: () => setState(() => _tab = 3),
+              onAction: () => setState(() => _tab = 2),
             ),
             const SizedBox(height: 9),
             if (data.recentOrders.isEmpty)
@@ -411,46 +400,20 @@ class _BusinessBuyerDashboardPageState
                     : null,
               ),
             ),
+          const SizedBox(height: 12),
+          const ShoppingSectionHeader(title: 'Farmers with active listings'),
+          const SizedBox(height: 9),
+          ..._farmers(data.productsInStock).entries.map(
+            (entry) => SupplierSummaryCard(
+              farmerId: entry.key,
+              productCount: entry.value,
+            ),
+          ),
           const SizedBox(height: 20),
         ],
       ),
     ),
   ];
-
-  List<Widget> _suppliersContent(ShoppingDashboardData data) {
-    final suppliers = _farmers(data.productsInStock);
-    return [
-      Padding(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const ShoppingEmptyState(
-              title: 'Supplier identity is limited',
-              message: 'The marketplace exposes farmer IDs through product listings, but does not provide public supplier profiles, locations, or verification details.',
-              icon: Icons.info_outline_rounded,
-            ),
-            const SizedBox(height: 15),
-            const ShoppingSectionHeader(title: 'Farmers with active listings'),
-            const SizedBox(height: 10),
-            if (suppliers.isEmpty)
-              const ShoppingEmptyState(
-                title: 'No suppliers available',
-                message:
-                    'Active product listings will identify their farmer IDs.',
-              )
-            else
-              ...suppliers.entries.map(
-                (entry) => SupplierSummaryCard(
-                  farmerId: entry.key,
-                  productCount: entry.value,
-                ),
-              ),
-          ],
-        ),
-      ),
-    ];
-  }
 
   List<Widget> _ordersContent(ShoppingDashboardData data) => [
     Padding(

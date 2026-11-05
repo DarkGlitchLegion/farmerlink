@@ -64,6 +64,63 @@ class _BuyerDashboardPageState extends ConsumerState<BuyerDashboardPage> {
         ),
       );
 
+  Future<void> _placeOrder(
+    ShoppingDashboardData data,
+    MarketProduct product,
+  ) async {
+    final batches = data.batches
+        .where(
+          (batch) =>
+              batch.productId == product.id &&
+              batch.farmerId == product.farmerId &&
+              batch.status == 'available' &&
+              batch.remainingQuantity > 0,
+        )
+        .toList();
+    if (batches.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'There is no available harvest batch for this listing.',
+          ),
+        ),
+      );
+      return;
+    }
+    final order = await showModalBottomSheet<ShoppingOrder>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.background,
+      builder: (context) => _BuyerOrderSheet(
+        product: product,
+        batches: batches,
+        onSubmit: (batchId, quantity, fulfillment) => ref
+            .read(shoppingDashboardRepositoryProvider)
+            .createBulkOrder(
+              productId: product.id,
+              batchId: batchId,
+              quantity: quantity,
+              fulfillmentStatus: fulfillment,
+            ),
+      ),
+    );
+    if (order == null || !mounted) return;
+    final user = ref.read(authenticationProvider).user;
+    if (user != null)
+      await invalidateShopperOrderMutation(
+        ref,
+        buyer: user,
+        farmerId: product.farmerId,
+      );
+    if (!mounted) return;
+    ref.invalidate(shoppingDashboardProvider(_role));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Order ${order.orderNumber} placed · ${order.status}'),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final dashboard = ref.watch(shoppingDashboardProvider(_role));
@@ -204,6 +261,7 @@ class _BuyerDashboardPageState extends ConsumerState<BuyerDashboardPage> {
                       key: ValueKey(product.id),
                       product: product,
                       businessMode: false,
+                      onOrder: () => _placeOrder(data, product),
                     ),
                   ),
             const SizedBox(height: 10),
@@ -308,6 +366,7 @@ class _BuyerDashboardPageState extends ConsumerState<BuyerDashboardPage> {
                 product: product,
                 businessMode: false,
                 onTap: () => _showProductDetails(product),
+                onOrder: () => _placeOrder(data, product),
               ),
             ),
           const SizedBox(height: 20),
@@ -616,6 +675,207 @@ class _AccountRow extends StatelessWidget {
           ),
         ),
       ],
+    ),
+  );
+}
+
+class _BuyerOrderSheet extends StatefulWidget {
+  const _BuyerOrderSheet({
+    required this.product,
+    required this.batches,
+    required this.onSubmit,
+  });
+  final MarketProduct product;
+  final List<AvailableHarvestBatch> batches;
+  final Future<ShoppingOrder> Function(int, int, String) onSubmit;
+
+  @override
+  State<_BuyerOrderSheet> createState() => _BuyerOrderSheetState();
+}
+
+class _BuyerOrderSheetState extends State<_BuyerOrderSheet> {
+  late int _batchId = widget.batches.first.id;
+  late final _quantity = TextEditingController(text: '1');
+  String _fulfillment = 'pickup';
+  String? _error;
+  bool _submitting = false;
+  AvailableHarvestBatch get _batch =>
+      widget.batches.firstWhere((b) => b.id == _batchId);
+  int get _maximum =>
+      widget.product.availableQuantity < _batch.remainingQuantity
+      ? widget.product.availableQuantity
+      : _batch.remainingQuantity;
+
+  @override
+  void dispose() {
+    _quantity.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final amount = int.tryParse(_quantity.text);
+    if (amount == null ||
+        amount < 1 ||
+        amount < widget.product.minimumOrderQuantity) {
+      setState(
+        () => _error =
+            'Enter at least ${widget.product.minimumOrderQuantity} ${widget.product.unit}.',
+      );
+      return;
+    }
+    if (amount > _maximum) {
+      setState(
+        () => _error =
+            'This batch has at most $_maximum ${widget.product.unit} available.',
+      );
+      return;
+    }
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
+    try {
+      final order = await widget.onSubmit(_batchId, amount, _fulfillment);
+      if (mounted) Navigator.pop(context, order);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _error =
+            error is ApiException &&
+                (error.statusCode == 409 || error.statusCode == 422)
+            ? error.message
+            : error is ApiException && error.statusCode == 401
+            ? 'Your session expired. Sign in again before ordering.'
+            : 'The order could not be placed. Please try again.';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => SafeArea(
+    child: Padding(
+      padding: EdgeInsets.fromLTRB(
+        20,
+        18,
+        20,
+        20 + MediaQuery.viewInsetsOf(context).bottom,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Place order',
+              style: TextStyle(
+                color: AppColors.darkGreen,
+                fontSize: 19,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '${widget.product.name} · ${formatShoppingPeso(widget.product.pricePerUnit)} / ${widget.product.unit}',
+              style: TextStyle(
+                color: AppColors.darkGreen.withValues(alpha: .65),
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 18),
+            DropdownButtonFormField<int>(
+              initialValue: _batchId,
+              decoration: const InputDecoration(
+                labelText: 'Available harvest batch',
+                border: OutlineInputBorder(),
+              ),
+              items: widget.batches
+                  .map(
+                    (b) => DropdownMenuItem(
+                      value: b.id,
+                      child: Text(
+                        '${b.batchCode} · ${b.remainingQuantity} ${widget.product.unit} left',
+                      ),
+                    ),
+                  )
+                  .toList(),
+              onChanged: _submitting
+                  ? null
+                  : (value) {
+                      if (value != null)
+                        setState(() {
+                          _batchId = value;
+                          _error = null;
+                        });
+                    },
+            ),
+            const SizedBox(height: 13),
+            TextField(
+              controller: _quantity,
+              enabled: !_submitting,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Quantity (${widget.product.unit})',
+                helperText:
+                    'Minimum ${widget.product.minimumOrderQuantity} · Maximum $_maximum',
+                border: const OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 13),
+            DropdownButtonFormField<String>(
+              initialValue: _fulfillment,
+              decoration: const InputDecoration(
+                labelText: 'Fulfillment method',
+                border: OutlineInputBorder(),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'pickup', child: Text('Pickup')),
+                DropdownMenuItem(
+                  value: 'farmer_arranged',
+                  child: Text('Farmer arranged'),
+                ),
+              ],
+              onChanged: _submitting
+                  ? null
+                  : (value) {
+                      if (value != null) setState(() => _fulfillment = value);
+                    },
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                _error!,
+                style: const TextStyle(color: Color(0xFF9B1C1C), fontSize: 12),
+              ),
+            ],
+            const SizedBox(height: 18),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed:
+                    _submitting ||
+                        widget.product.minimumOrderQuantity > _maximum
+                    ? null
+                    : _submit,
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primaryGreen,
+                  foregroundColor: Colors.white,
+                ),
+                child: _submitting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Confirm order'),
+              ),
+            ),
+          ],
+        ),
+      ),
     ),
   );
 }
