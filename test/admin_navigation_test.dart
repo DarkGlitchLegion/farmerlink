@@ -1,4 +1,9 @@
+import 'package:farmerlink/features/admin/presentation/pages/admin_dashboard_page.dart';
 import 'package:farmerlink/features/admin/presentation/admin_crud_pages.dart';
+import 'package:farmerlink/features/admin/data/models/admin_analytics.dart';
+import 'package:farmerlink/features/admin/data/models/admin_dashboard_data.dart';
+import 'package:farmerlink/features/admin/presentation/providers/admin_analytics_provider.dart';
+import 'package:farmerlink/features/admin/presentation/providers/admin_dashboard_data_provider.dart';
 import 'package:farmerlink/features/authentication/domain/entities/user.dart';
 import 'package:farmerlink/features/authentication/presentation/providers/authentication_provider.dart';
 import 'package:flutter/material.dart';
@@ -37,7 +42,17 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [authenticationProvider.overrideWith(_SignedInAdmin.new)],
+        overrides: [
+          authenticationProvider.overrideWith(_SignedInAdmin.new),
+          adminAnalyticsProvider.overrideWith((ref) async => _analytics),
+          adminDashboardDataProvider.overrideWith(
+            (ref) async => const AdminDashboardData(
+              orders: [],
+              pendingProfiles: [],
+              cropReports: [],
+            ),
+          ),
+        ],
         child: MaterialApp.router(routerConfig: router),
       ),
     );
@@ -55,6 +70,16 @@ void main() {
     expect(find.byType(NavigationBar), findsOneWidget);
   });
 }
+
+const _analytics = AdminAnalyticsOverview(
+  generatedAt: null,
+  users: UserAnalytics(total: 0),
+  catalog: CatalogAnalytics(),
+  orders: OrderAnalytics(),
+  profiles: ProfileAnalytics(),
+  cropReports: CropReportAnalytics(),
+  topDeliveredProducts: [],
+);
 
 class _SignedInAdmin extends AuthenticationController {
   @override

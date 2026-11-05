@@ -22,6 +22,7 @@ class ApiPermissionChecker {
   };
 
   static const _admin = <String>{
+    'GET /analytics/overview',
     'GET /users',
     'POST /users',
     'GET /users/{id}',

@@ -44,6 +44,7 @@ void main() {
     'admin can administer resources and read all orders but cannot place one',
     () {
       allow(UserRole.admin, 'GET', '/users');
+      allow(UserRole.admin, 'GET', '/analytics/overview');
       allow(UserRole.admin, 'DELETE', '/products/42');
       allow(UserRole.admin, 'POST', '/harvest-batches');
       allow(UserRole.admin, 'GET', '/orders/8/items');
@@ -80,6 +81,7 @@ void main() {
         body: {'status': 'processing'},
       );
       deny(UserRole.farmer, 'GET', '/users');
+      deny(UserRole.farmer, 'GET', '/analytics/overview');
       deny(UserRole.farmer, 'PATCH', '/crop-reports/7');
       deny(
         UserRole.farmer,

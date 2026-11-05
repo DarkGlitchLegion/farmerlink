@@ -9,6 +9,9 @@ import '../../features/dashboard/buyer/presentation/pages/buyer_dashboard_page.d
 import '../../features/dashboard/business_buyer/presentation/pages/business_buyer_dashboard_page.dart';
 import '../../features/dashboard/presentation/pages/farmer_workspace_pages.dart';
 import '../../features/admin/presentation/admin_crud_pages.dart';
+import '../../features/admin/presentation/pages/admin_analytics_page.dart';
+import '../../features/admin/presentation/pages/admin_dashboard_page.dart';
+import '../../features/admin/presentation/widgets/admin_navigation_panel.dart';
 import '../../features/marketplace/presentation/public_marketplace_info_page.dart';
 
 String roleDashboardLocation(String role) => switch (role) {
@@ -177,39 +180,49 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/dashboard/business-buyer',
         builder: (context, state) => const BusinessBuyerDashboardPage(),
       ),
-      GoRoute(
-        path: '/dashboard/admin',
-        builder: (context, state) => const AdminDashboardPage(),
+      ShellRoute(
+        builder: (context, state, child) => AdminResponsiveShell(child: child),
         routes: [
           GoRoute(
-            path: 'profile',
-            builder: (context, state) => const AdminProfilePage(),
-          ),
-          GoRoute(
-            path: ':resource',
-            builder: (context, state) =>
-                AdminResourcePage(resource: state.pathParameters['resource']!),
+            path: '/dashboard/admin',
+            builder: (context, state) => const AdminDashboardPage(),
             routes: [
               GoRoute(
-                path: 'new',
-                builder: (context, state) => AdminRecordFormPage(
-                  resource: state.pathParameters['resource']!,
-                ),
+                path: 'analytics',
+                builder: (context, state) => const AdminAnalyticsPage(),
               ),
               GoRoute(
-                path: ':id',
-                builder: (context, state) => AdminRecordDetailPage(
-                  resource: state.pathParameters['resource']!,
-                  id: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
-                ),
+                path: 'profile',
+                builder: (context, state) => const AdminProfilePage(),
               ),
               GoRoute(
-                path: ':id/edit',
-                builder: (context, state) => AdminRecordFormPage(
+                path: ':resource',
+                builder: (context, state) => AdminResourcePage(
                   resource: state.pathParameters['resource']!,
-                  id: int.tryParse(state.pathParameters['id'] ?? ''),
-                  initial: state.extra as Map<String, dynamic>?,
                 ),
+                routes: [
+                  GoRoute(
+                    path: 'new',
+                    builder: (context, state) => AdminRecordFormPage(
+                      resource: state.pathParameters['resource']!,
+                    ),
+                  ),
+                  GoRoute(
+                    path: ':id',
+                    builder: (context, state) => AdminRecordDetailPage(
+                      resource: state.pathParameters['resource']!,
+                      id: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
+                    ),
+                  ),
+                  GoRoute(
+                    path: ':id/edit',
+                    builder: (context, state) => AdminRecordFormPage(
+                      resource: state.pathParameters['resource']!,
+                      id: int.tryParse(state.pathParameters['id'] ?? ''),
+                      initial: state.extra as Map<String, dynamic>?,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

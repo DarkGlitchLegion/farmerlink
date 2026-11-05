@@ -79,6 +79,10 @@ void main() {
         appRouteRedirect(buyer, '/dashboard/admin/users'),
         '/dashboard/buyer',
       );
+      expect(
+        appRouteRedirect(buyer, '/dashboard/admin/analytics'),
+        '/dashboard/buyer',
+      );
       const admin = AuthenticationState(
         status: AuthenticationStatus.authenticated,
         user: AuthUser(

@@ -12,10 +12,10 @@ import '../../../core/services/order_service.dart';
 import '../../../core/services/product_service.dart';
 import '../../../core/services/profile_service.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/icon_only_navigation_bar.dart';
 import '../../../core/widgets/image_file_picker_field.dart';
 import '../../../core/widgets/base64_image_preview.dart';
 import '../../../core/services/api_client.dart';
+import 'widgets/admin_navigation_panel.dart';
 import '../../authentication/presentation/providers/authentication_provider.dart';
 
 class AdminModule {
@@ -48,105 +48,6 @@ const adminModules = <AdminModule>[
   AdminModule('orders', 'Orders', Icons.shopping_bag_outlined, create: false),
 ];
 
-Widget _adminBottomNavigationBar(BuildContext context, int selectedIndex) =>
-    IconOnlyNavigationBar(
-      selectedIndex: selectedIndex,
-      onSelected: (index) => context.go(
-        const [
-          '/dashboard/admin',
-          '/dashboard/admin/users',
-          '/dashboard/admin/products',
-          '/dashboard/admin/crop-reports',
-          '/dashboard/admin/profile',
-        ][index],
-      ),
-      items: const [
-        IconOnlyNavigationItem(
-          icon: Icons.dashboard_outlined,
-          activeIcon: Icons.dashboard,
-        ),
-        IconOnlyNavigationItem(
-          icon: Icons.people_outline,
-          activeIcon: Icons.people,
-        ),
-        IconOnlyNavigationItem(
-          icon: Icons.inventory_2_outlined,
-          activeIcon: Icons.inventory_2,
-        ),
-        IconOnlyNavigationItem(
-          icon: Icons.assessment_outlined,
-          activeIcon: Icons.assessment,
-        ),
-        IconOnlyNavigationItem(
-          icon: Icons.person_outline,
-          activeIcon: Icons.person,
-        ),
-      ],
-    );
-
-class AdminDashboardPage extends ConsumerWidget {
-  const AdminDashboardPage({super.key});
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(authenticationProvider).user;
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      bottomNavigationBar: _adminBottomNavigationBar(context, 0),
-      appBar: AppBar(
-        title: const Text('Administration'),
-        backgroundColor: AppColors.background,
-        actions: [
-          IconButton(
-            tooltip: 'Sign out',
-            onPressed: () async {
-              await ref.read(authenticationProvider.notifier).logout();
-              if (context.mounted) context.go('/login');
-            },
-            icon: const Icon(Icons.logout),
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(18),
-        children: [
-          Text(
-            'Welcome, ${user?.firstName ?? 'Admin'}',
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              color: AppColors.darkGreen,
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text('Manage records supported by the FarmerLink API.'),
-          const SizedBox(height: 18),
-          for (final module in adminModules)
-            Card(
-              color: Colors.white,
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: AppColors.accentGreen.withValues(alpha: .14),
-                  child: Icon(module.icon, color: AppColors.primaryGreen),
-                ),
-                title: Text(
-                  module.title,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-                subtitle: Text(
-                  module.create
-                      ? 'View and manage ${module.title.toLowerCase()}'
-                      : 'View and update; order creation is restricted to buyers.',
-                ),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => context.push('/dashboard/admin/${module.key}'),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
 class AdminProfilePage extends ConsumerWidget {
   const AdminProfilePage({super.key});
 
@@ -155,11 +56,12 @@ class AdminProfilePage extends ConsumerWidget {
     final user = ref.watch(authenticationProvider).user;
     return Scaffold(
       backgroundColor: AppColors.background,
+      drawer: const AdminNavigationDrawer(),
       appBar: AppBar(
         title: const Text('Account'),
         backgroundColor: AppColors.background,
       ),
-      bottomNavigationBar: _adminBottomNavigationBar(context, 4),
+      bottomNavigationBar: const AdminBottomNavigationBar(selectedIndex: 4),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -255,9 +157,9 @@ class _AdminResourcePageState extends ConsumerState<AdminResourcePage> {
     }
     return Scaffold(
       backgroundColor: AppColors.background,
-      bottomNavigationBar: _adminBottomNavigationBar(
-        context,
-        switch (widget.resource) {
+      drawer: const AdminNavigationDrawer(),
+      bottomNavigationBar: AdminBottomNavigationBar(
+        selectedIndex: switch (widget.resource) {
           'users' => 1,
           'products' => 2,
           'crop-reports' => 3,
@@ -455,9 +357,9 @@ class _AdminRecordDetailPageState extends ConsumerState<AdminRecordDetailPage> {
     }
     return Scaffold(
       backgroundColor: AppColors.background,
-      bottomNavigationBar: _adminBottomNavigationBar(
-        context,
-        switch (widget.resource) {
+      drawer: const AdminNavigationDrawer(),
+      bottomNavigationBar: AdminBottomNavigationBar(
+        selectedIndex: switch (widget.resource) {
           'users' => 1,
           'products' => 2,
           'crop-reports' => 3,
@@ -746,9 +648,9 @@ class _AdminRecordFormPageState extends ConsumerState<AdminRecordFormPage> {
     }
     return Scaffold(
       backgroundColor: AppColors.background,
-      bottomNavigationBar: _adminBottomNavigationBar(
-        context,
-        switch (widget.resource) {
+      drawer: const AdminNavigationDrawer(),
+      bottomNavigationBar: AdminBottomNavigationBar(
+        selectedIndex: switch (widget.resource) {
           'users' => 1,
           'products' => 2,
           'crop-reports' => 3,
