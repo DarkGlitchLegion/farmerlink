@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:http/http.dart' as http;
 
@@ -31,20 +32,33 @@ class ApiClient {
     if (normalized != null && normalized['offset'] is num) {
       normalized['offset'] = (normalized['offset'] as num).clamp(0, 1 << 31);
     }
-    return Uri.parse('$baseUrl${path.startsWith('/') ? path : '/$path'}').replace(
+    return Uri.parse(
+      '$baseUrl${path.startsWith('/') ? path : '/$path'}',
+    ).replace(
       queryParameters: normalized?.map((key, value) => MapEntry(key, '$value')),
     );
   }
 
-  Future<dynamic> get(String path, {Map<String, dynamic>? query, String? token}) =>
-      _send(_client.get(_uri(path, query), headers: _headers(token: token)));
+  Future<dynamic> get(
+    String path, {
+    Map<String, dynamic>? query,
+    String? token,
+  }) => _send(_client.get(_uri(path, query), headers: _headers(token: token)));
 
   Future<dynamic> post(String path, {Object? body, String? token}) => _send(
-    _client.post(_uri(path), headers: _headers(token: token), body: jsonEncode(body ?? {})),
+    _client.post(
+      _uri(path),
+      headers: _headers(token: token),
+      body: jsonEncode(body ?? {}),
+    ),
   );
 
   Future<dynamic> patch(String path, {Object? body, String? token}) => _send(
-    _client.patch(_uri(path), headers: _headers(token: token), body: jsonEncode(body ?? {})),
+    _client.patch(
+      _uri(path),
+      headers: _headers(token: token),
+      body: jsonEncode(body ?? {}),
+    ),
   );
 
   Future<dynamic> delete(String path, {String? token}) =>
@@ -60,11 +74,15 @@ class ApiClient {
     request.headers.addAll(_headers(token: token, json: false));
     request.fields.addAll(fields);
     if (file != null) request.files.add(file);
-    return _send(http.Response.fromStream(await _client.send(request)));
+    return _send(
+      http.Response.fromStream(
+        await _client.send(request).timeout(const Duration(seconds: 25)),
+      ),
+    );
   }
 
   Future<dynamic> _send(Future<http.Response> request) async {
-    final response = await request;
+    final response = await request.timeout(const Duration(seconds: 25));
     final text = response.body;
     dynamic data;
     if (text.isNotEmpty) {
@@ -75,10 +93,26 @@ class ApiClient {
       }
     }
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      final message = data is Map ? (data['detail'] ?? data['message']) : null;
-      throw ApiException(response.statusCode, message?.toString() ?? text);
+      final detail = data is Map ? (data['detail'] ?? data['message']) : null;
+      throw ApiException(response.statusCode, _formatDetail(detail, text));
     }
     return data;
+  }
+
+  String _formatDetail(dynamic detail, String fallback) {
+    if (detail is String && detail.isNotEmpty) return detail;
+    if (detail is List) {
+      final errors = detail.whereType<Map>().map((error) {
+        final location = error['loc'];
+        final field = location is List && location.isNotEmpty
+            ? location.skip(1).join('.')
+            : '';
+        final message = error['msg']?.toString() ?? 'Invalid value';
+        return field.isEmpty ? message : '$field: $message';
+      }).toList();
+      if (errors.isNotEmpty) return errors.join('\n');
+    }
+    return fallback;
   }
 }
 

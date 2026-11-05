@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/theme/app_colors.dart';
-import 'features/onboarding/presentation/pages/splash_page.dart';
+import 'core/router/app_router.dart';
 
-class FarmerLinkApp extends StatelessWidget {
+class FarmerLinkApp extends ConsumerWidget {
   const FarmerLinkApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
+  Widget build(BuildContext context, WidgetRef ref) {
+    return MaterialApp.router(
       title: 'FarmerLink',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -20,7 +21,7 @@ class FarmerLinkApp extends StatelessWidget {
         ),
         scaffoldBackgroundColor: AppColors.background,
       ),
-      home: const SplashPage(),
+      routerConfig: ref.watch(appRouterProvider),
     );
   }
 }
