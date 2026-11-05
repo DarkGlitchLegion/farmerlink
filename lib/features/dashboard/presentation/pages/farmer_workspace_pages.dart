@@ -442,13 +442,6 @@ class _FarmerHome extends ConsumerWidget {
             onPressed: () => context.push('/dashboard/farmer/notifications'),
             icon: const Icon(Icons.notifications_none_rounded),
           ),
-          IconButton(
-            onPressed: () async {
-              await ref.read(authenticationProvider.notifier).logout();
-              if (context.mounted) context.go('/login');
-            },
-            icon: const Icon(Icons.logout_rounded),
-          ),
         ],
       ),
       body: RefreshIndicator(
@@ -1354,6 +1347,17 @@ class _FarmerProfileView extends ConsumerWidget {
           onPressed: () => context.push('/dashboard/farmer/crop-reports'),
           icon: const Icon(Icons.report_outlined),
           label: const Text('My Crop Reports'),
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: () async {
+            try {
+              await ref.read(authenticationProvider.notifier).logout();
+            } catch (_) {}
+            if (context.mounted) context.go('/login');
+          },
+          icon: const Icon(Icons.logout_rounded),
+          label: const Text('Sign out'),
         ),
         if (profile != null)
           TextButton.icon(

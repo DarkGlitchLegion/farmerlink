@@ -44,32 +44,17 @@ class FarmerDashboardPage extends ConsumerWidget {
             if (context.mounted) context.go('/login');
           },
         ),
-        data: (data) => _DashboardContent(
-          data: data,
-          onRefresh: () => _refresh(ref),
-          onSignOut: () async {
-            try {
-              await ref.read(authenticationProvider.notifier).logout();
-            } catch (_) {
-              // The auth controller still clears in-memory state in its finally block.
-            }
-            if (context.mounted) context.go('/login');
-          },
-        ),
+        data: (data) =>
+            _DashboardContent(data: data, onRefresh: () => _refresh(ref)),
       ),
     );
   }
 }
 
 class _DashboardContent extends StatelessWidget {
-  const _DashboardContent({
-    required this.data,
-    required this.onRefresh,
-    required this.onSignOut,
-  });
+  const _DashboardContent({required this.data, required this.onRefresh});
   final FarmerDashboardData data;
   final Future<void> Function() onRefresh;
-  final VoidCallback onSignOut;
 
   @override
   Widget build(BuildContext context) => RefreshIndicator(
@@ -79,11 +64,7 @@ class _DashboardContent extends StatelessWidget {
       physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
         SliverToBoxAdapter(
-          child: FarmerProfileHeader(
-            user: data.user,
-            profile: data.profile,
-            onSignOut: onSignOut,
-          ),
+          child: FarmerProfileHeader(user: data.user, profile: data.profile),
         ),
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(20, 22, 20, 0),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../providers/authentication_provider.dart';
@@ -29,16 +28,6 @@ class RoleDashboardPage extends ConsumerWidget {
             fontWeight: FontWeight.w700,
           ),
         ),
-        actions: [
-          IconButton(
-            tooltip: 'Sign out',
-            onPressed: () async {
-              await ref.read(authenticationProvider.notifier).logout();
-              if (context.mounted) context.go('/login');
-            },
-            icon: const Icon(Icons.logout_rounded),
-          ),
-        ],
       ),
       body: Center(
         child: Padding(

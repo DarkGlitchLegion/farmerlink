@@ -13,7 +13,6 @@ class ShoppingDashboardHeader extends StatelessWidget {
     required this.businessMode,
     required this.unreadNotifications,
     required this.onNotifications,
-    required this.onSignOut,
     this.businessProfile,
   });
 
@@ -22,7 +21,6 @@ class ShoppingDashboardHeader extends StatelessWidget {
   final BusinessProfileData? businessProfile;
   final int unreadNotifications;
   final VoidCallback onNotifications;
-  final VoidCallback onSignOut;
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +44,6 @@ class ShoppingDashboardHeader extends StatelessWidget {
       avatar: user.avatar,
       notificationCount: unreadNotifications,
       onNotifications: onNotifications,
-      onSignOut: onSignOut,
       status: businessProfile == null
           ? null
           : _BusinessVerification(status: businessProfile!.verificationStatus),

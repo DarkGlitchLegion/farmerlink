@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/services/api_client.dart';
@@ -191,6 +192,17 @@ class _AdminProfilePageState extends ConsumerState<AdminProfilePage> {
                       ],
                     ),
                   ),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    try {
+                      await ref.read(authenticationProvider.notifier).logout();
+                    } catch (_) {}
+                    if (context.mounted) context.go('/login');
+                  },
+                  icon: const Icon(Icons.logout_rounded),
+                  label: const Text('Sign out'),
                 ),
               ],
             ),

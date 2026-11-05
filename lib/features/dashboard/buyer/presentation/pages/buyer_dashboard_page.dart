@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../../core/services/api_client.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/storage/dashboard_cache_invalidation.dart';
 import '../../../../../core/widgets/icon_only_navigation_bar.dart';
@@ -106,12 +107,13 @@ class _BuyerDashboardPageState extends ConsumerState<BuyerDashboardPage> {
     );
     if (order == null || !mounted) return;
     final user = ref.read(authenticationProvider).user;
-    if (user != null)
+    if (user != null) {
       await invalidateShopperOrderMutation(
         ref,
         buyer: user,
         farmerId: product.farmerId,
       );
+    }
     if (!mounted) return;
     ref.invalidate(shoppingDashboardProvider(_role));
     ScaffoldMessenger.of(context).showSnackBar(
@@ -159,11 +161,6 @@ class _BuyerDashboardPageState extends ConsumerState<BuyerDashboardPage> {
                         color: AppColors.primaryGreen,
                       ),
                     ),
-                  ),
-                  IconButton(
-                    tooltip: 'Sign out',
-                    onPressed: _signOut,
-                    icon: const Icon(Icons.logout_rounded),
                   ),
                 ],
               ),
@@ -220,7 +217,6 @@ class _BuyerDashboardPageState extends ConsumerState<BuyerDashboardPage> {
         businessMode: false,
         unreadNotifications: data.unreadNotifications,
         onNotifications: () => _showNotifications(data),
-        onSignOut: _signOut,
       ),
       Padding(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
@@ -802,11 +798,12 @@ class _BuyerOrderSheetState extends State<_BuyerOrderSheet> {
               onChanged: _submitting
                   ? null
                   : (value) {
-                      if (value != null)
+                      if (value != null) {
                         setState(() {
                           _batchId = value;
                           _error = null;
                         });
+                      }
                     },
             ),
             const SizedBox(height: 13),

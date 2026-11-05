@@ -13,7 +13,6 @@ class AgriculturalDashboardHeader extends StatelessWidget {
     this.avatar,
     this.notificationCount = 0,
     this.onNotifications,
-    this.onSignOut,
     this.onAvatarTap,
     this.status,
     this.actions = const [],
@@ -25,7 +24,6 @@ class AgriculturalDashboardHeader extends StatelessWidget {
   final String? avatar;
   final int notificationCount;
   final VoidCallback? onNotifications;
-  final VoidCallback? onSignOut;
   final VoidCallback? onAvatarTap;
   final Widget? status;
   final List<Widget> actions;
@@ -80,13 +78,6 @@ class AgriculturalDashboardHeader extends StatelessWidget {
                 ),
               ),
             ...actions,
-            if (onSignOut != null)
-              IconButton(
-                tooltip: 'Sign out',
-                onPressed: onSignOut,
-                color: Colors.white.withValues(alpha: .9),
-                icon: const Icon(Icons.logout_rounded, size: 21),
-              ),
           ],
         ),
         const SizedBox(height: 18),

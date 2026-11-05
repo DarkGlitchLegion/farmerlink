@@ -6,16 +6,10 @@ import '../../data/models/dashboard_models.dart';
 import '../../shared/widgets/agricultural_dashboard_header.dart';
 
 class FarmerProfileHeader extends StatelessWidget {
-  const FarmerProfileHeader({
-    super.key,
-    required this.user,
-    this.profile,
-    required this.onSignOut,
-  });
+  const FarmerProfileHeader({super.key, required this.user, this.profile});
 
   final AuthUser user;
   final FarmerProfileData? profile;
-  final VoidCallback onSignOut;
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +27,6 @@ class FarmerProfileHeader extends StatelessWidget {
       title: title.isEmpty ? 'Farmer' : title,
       subtitle: location.isEmpty ? 'Farm location not set' : location,
       avatar: user.avatar,
-      onSignOut: onSignOut,
       status: _VerificationBadge(status: verification),
     );
   }

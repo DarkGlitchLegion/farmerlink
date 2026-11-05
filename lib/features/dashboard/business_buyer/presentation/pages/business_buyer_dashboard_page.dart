@@ -167,11 +167,6 @@ class _BusinessBuyerDashboardPageState
                       ),
                     ),
                   ),
-                  IconButton(
-                    tooltip: 'Sign out',
-                    onPressed: _signOut,
-                    icon: const Icon(Icons.logout_rounded),
-                  ),
                 ],
               ),
         body: RefreshIndicator(
@@ -228,7 +223,6 @@ class _BusinessBuyerDashboardPageState
         businessProfile: data.businessProfile,
         unreadNotifications: data.unreadNotifications,
         onNotifications: () => _showNotifications(data),
-        onSignOut: _signOut,
       ),
       Padding(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),

@@ -61,10 +61,6 @@ class _DashboardBody extends ConsumerWidget {
                 onAvatarTap: () => context.go('/dashboard/admin/profile'),
                 onNotifications: () =>
                     context.go('/dashboard/admin/notifications'),
-                onSignOut: () async {
-                  await ref.read(authenticationProvider.notifier).logout();
-                  if (context.mounted) context.go('/login');
-                },
               ),
             ),
           ),
