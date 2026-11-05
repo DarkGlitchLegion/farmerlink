@@ -197,6 +197,7 @@ class _FakeShoppingRepository implements ShoppingDashboardRepository {
     required int productId,
     required int batchId,
     required int quantity,
+    String fulfillmentStatus = 'pickup',
   }) async {
     bulkOrders++;
     lastQuantity = quantity;
@@ -208,7 +209,7 @@ class _FakeShoppingRepository implements ShoppingDashboardRepository {
       totalAmount: quantity * 85,
       status: 'pending',
       paymentStatus: 'unpaid',
-      fulfillmentStatus: 'pickup',
+      fulfillmentStatus: fulfillmentStatus,
       createdAt: DateTime.now(),
     );
   }

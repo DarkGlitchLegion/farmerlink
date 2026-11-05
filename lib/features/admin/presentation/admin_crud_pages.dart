@@ -686,7 +686,7 @@ class _AdminRecordFormPageState extends ConsumerState<AdminRecordFormPage> {
           decoration: InputDecoration(labelText: field.label),
           items: [
             for (final choice in field.choices!)
-              DropdownMenuItem(value: choice, child: Text(choice)),
+              DropdownMenuItem(value: choice, child: Text(_humanize(choice))),
           ],
           onChanged: (value) => setState(() => _selected[field.key] = value),
           validator: field.required

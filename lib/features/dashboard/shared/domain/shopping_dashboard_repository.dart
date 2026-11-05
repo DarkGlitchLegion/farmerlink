@@ -8,5 +8,6 @@ abstract interface class ShoppingDashboardRepository {
     required int productId,
     required int batchId,
     required int quantity,
+    String fulfillmentStatus = 'pickup',
   });
 }

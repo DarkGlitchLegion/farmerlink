@@ -11,7 +11,6 @@ import '../widgets/auth_button.dart';
 import '../widgets/auth_header.dart';
 import '../widgets/auth_text_field.dart';
 import '../widgets/password_field.dart';
-import '../widgets/role_selection_card.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({super.key});
@@ -230,37 +229,28 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  RoleSelectionCard(
-                    value: 'farmer',
-                    title: 'Farmer',
-                    description: 'Share your harvest with local buyers',
-                    icon: Icons.agriculture_rounded,
-                    selected: _role == 'farmer',
-                    onTap: loading
+                  DropdownButtonFormField<String>(
+                    initialValue: _role,
+                    decoration: const InputDecoration(
+                      labelText: 'Account type',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'farmer', child: Text('Farmer')),
+                      DropdownMenuItem(
+                        value: 'buyer',
+                        child: Text('Individual buyer'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'business_buyer',
+                        child: Text('Business buyer'),
+                      ),
+                    ],
+                    onChanged: loading
                         ? null
-                        : () => setState(() => _role = 'farmer'),
-                  ),
-                  const SizedBox(height: 9),
-                  RoleSelectionCard(
-                    value: 'buyer',
-                    title: 'Individual buyer',
-                    description: 'Find fresh food grown near you',
-                    icon: Icons.shopping_basket_outlined,
-                    selected: _role == 'buyer',
-                    onTap: loading
-                        ? null
-                        : () => setState(() => _role = 'buyer'),
-                  ),
-                  const SizedBox(height: 9),
-                  RoleSelectionCard(
-                    value: 'business_buyer',
-                    title: 'Business buyer',
-                    description: 'Source produce for your business',
-                    icon: Icons.storefront_outlined,
-                    selected: _role == 'business_buyer',
-                    onTap: loading
-                        ? null
-                        : () => setState(() => _role = 'business_buyer'),
+                        : (value) {
+                            if (value != null) setState(() => _role = value);
+                          },
                   ),
                   if (auth.errorMessage != null ||
                       auth.successMessage != null) ...[

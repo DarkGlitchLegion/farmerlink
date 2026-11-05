@@ -97,12 +97,13 @@ class _BusinessBuyerDashboardPageState
       builder: (context) => _BulkOrderSheet(
         product: product,
         batches: batches,
-        onSubmit: (batchId, quantity) => ref
+        onSubmit: (batchId, quantity, fulfillmentStatus) => ref
             .read(shoppingDashboardRepositoryProvider)
             .createBulkOrder(
               productId: product.id,
               batchId: batchId,
               quantity: quantity,
+              fulfillmentStatus: fulfillmentStatus,
             ),
       ),
     );
@@ -988,7 +989,12 @@ class _BulkOrderSheet extends StatefulWidget {
   });
   final MarketProduct product;
   final List<AvailableHarvestBatch> batches;
-  final Future<ShoppingOrder> Function(int batchId, int quantity) onSubmit;
+  final Future<ShoppingOrder> Function(
+    int batchId,
+    int quantity,
+    String fulfillmentStatus,
+  )
+  onSubmit;
 
   @override
   State<_BulkOrderSheet> createState() => _BulkOrderSheetState();
@@ -1001,6 +1007,7 @@ class _BulkOrderSheetState extends State<_BulkOrderSheet> {
   );
   String? _error;
   bool _submitting = false;
+  String _fulfillmentStatus = 'pickup';
 
   AvailableHarvestBatch get _batch =>
       widget.batches.firstWhere((batch) => batch.id == _batchId);
@@ -1034,7 +1041,7 @@ class _BulkOrderSheetState extends State<_BulkOrderSheet> {
       _error = null;
     });
     try {
-      final order = await widget.onSubmit(_batchId, amount);
+      final order = await widget.onSubmit(_batchId, amount, _fulfillmentStatus);
       if (mounted) Navigator.pop(context, order);
     } catch (error) {
       if (!mounted) return;
@@ -1116,13 +1123,27 @@ class _BulkOrderSheetState extends State<_BulkOrderSheet> {
                   border: const OutlineInputBorder(),
                 ),
               ),
-              const SizedBox(height: 7),
-              Text(
-                'Fulfillment: pickup',
-                style: TextStyle(
-                  color: AppColors.darkGreen.withValues(alpha: .64),
-                  fontSize: 11,
+              const SizedBox(height: 13),
+              DropdownButtonFormField<String>(
+                initialValue: _fulfillmentStatus,
+                decoration: const InputDecoration(
+                  labelText: 'Fulfillment method',
+                  border: OutlineInputBorder(),
                 ),
+                items: const [
+                  DropdownMenuItem(value: 'pickup', child: Text('Pickup')),
+                  DropdownMenuItem(
+                    value: 'farmer_arranged',
+                    child: Text('Farmer arranged'),
+                  ),
+                ],
+                onChanged: _submitting
+                    ? null
+                    : (value) {
+                        if (value != null) {
+                          setState(() => _fulfillmentStatus = value);
+                        }
+                      },
               ),
               if (_error != null) ...[
                 const SizedBox(height: 10),

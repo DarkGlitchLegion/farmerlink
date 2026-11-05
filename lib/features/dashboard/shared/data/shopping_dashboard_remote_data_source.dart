@@ -100,6 +100,7 @@ class ShoppingDashboardRemoteDataSource {
     required int productId,
     required int batchId,
     required int quantity,
+    String fulfillmentStatus = 'pickup',
   }) async {
     final response = await _orders.create({
       'items': [
@@ -109,7 +110,7 @@ class ShoppingDashboardRemoteDataSource {
           'quantity': quantity,
         },
       ],
-      'fulfillment_status': 'pickup',
+      'fulfillment_status': fulfillmentStatus,
     });
     if (response is! Map) {
       throw const FormatException(

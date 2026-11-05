@@ -19,9 +19,11 @@ class ShoppingDashboardRepositoryImpl implements ShoppingDashboardRepository {
     required int productId,
     required int batchId,
     required int quantity,
+    String fulfillmentStatus = 'pickup',
   }) => _remote.createBulkOrder(
     productId: productId,
     batchId: batchId,
     quantity: quantity,
+    fulfillmentStatus: fulfillmentStatus,
   );
 }
