@@ -16,6 +16,7 @@ void main() {
         path: path,
         token: token,
         role: role,
+        authenticatedUserId: 12,
         body: body,
       );
 
@@ -53,12 +54,17 @@ void main() {
   test(
     'farmers can manage farm resources but not admin or report moderation',
     () {
-      allow(UserRole.farmer, 'POST', '/products', body: {'name': 'Corn'});
+      allow(
+        UserRole.farmer,
+        'POST',
+        '/products',
+        body: {'name': 'Corn', 'farmer_id': 12},
+      );
       allow(
         UserRole.farmer,
         'POST',
         '/harvest-batches',
-        body: {'batch_code': 'A-1'},
+        body: {'batch_code': 'A-1', 'farmer_id': 12, 'product_id': 5},
       );
       allow(
         UserRole.farmer,

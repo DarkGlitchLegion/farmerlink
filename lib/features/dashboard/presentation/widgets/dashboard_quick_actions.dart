@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 
@@ -7,62 +8,45 @@ class DashboardQuickActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(
-    children: const [
+    children: [
       Expanded(
-        child: _UnavailableAction(
-          icon: Icons.agriculture_rounded,
-          label: 'Log Harvest',
+        child: _QuickAction(
+          icon: Icons.inventory_2_outlined,
+          label: 'My Products',
+          onTap: () => context.go('/dashboard/farmer/products'),
         ),
       ),
-      SizedBox(width: 12),
+      const SizedBox(width: 12),
       Expanded(
-        child: _UnavailableAction(
-          icon: Icons.spa_outlined,
-          label: 'Move to Surplus',
+        child: _QuickAction(
+          icon: Icons.agriculture_rounded,
+          label: 'Add Harvest Batch',
+          onTap: () => context.push('/dashboard/farmer/batches/new'),
         ),
       ),
     ],
   );
 }
 
-class _UnavailableAction extends StatelessWidget {
-  const _UnavailableAction({required this.icon, required this.label});
+class _QuickAction extends StatelessWidget {
+  const _QuickAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
   final IconData icon;
   final String label;
+  final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Tooltip(
-    message: 'This workflow is not available in the app yet.',
-    child: Container(
-      height: 76,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(17),
-        border: Border.all(color: const Color(0xFFE7EBDD)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            color: AppColors.primaryGreen.withValues(alpha: .48),
-            size: 21,
-          ),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppColors.darkGreen.withValues(alpha: .55),
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
+  Widget build(BuildContext context) => OutlinedButton.icon(
+    onPressed: onTap,
+    icon: Icon(icon),
+    label: Text(label),
+    style: OutlinedButton.styleFrom(
+      foregroundColor: AppColors.primaryGreen,
+      backgroundColor: Colors.white,
+      padding: const EdgeInsets.symmetric(vertical: 17),
     ),
   );
 }

@@ -55,6 +55,14 @@ void main() {
         '/dashboard/farmer',
       );
       expect(appRouteRedirect(authenticated, '/dashboard/farmer'), isNull);
+      expect(
+        appRouteRedirect(authenticated, '/dashboard/farmer/products'),
+        isNull,
+      );
+      expect(
+        appRouteRedirect(authenticated, '/dashboard/farmer/batches/new'),
+        isNull,
+      );
     },
   );
 
@@ -303,6 +311,9 @@ class _FakeRemote implements AuthenticationRemoteDataSource {
 
   @override
   void setRole(String? role) {}
+
+  @override
+  void setUserId(int? userId) {}
 }
 
 class _MemoryTokenStorage implements TokenStorage {

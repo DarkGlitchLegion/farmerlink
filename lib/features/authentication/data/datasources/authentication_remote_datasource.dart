@@ -35,4 +35,6 @@ class AuthenticationRemoteDataSource {
   void setToken(String? token) => _service.setToken(token);
 
   void setRole(String? role) => _service.setRole(role);
+
+  void setUserId(int? userId) => _service.setUserId(userId);
 }

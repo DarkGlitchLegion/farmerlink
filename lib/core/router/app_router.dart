@@ -6,9 +6,9 @@ import '../../features/authentication/presentation/pages/register_page.dart';
 import '../../features/authentication/presentation/pages/role_dashboard_page.dart';
 import '../../features/authentication/presentation/pages/splash_gate_page.dart';
 import '../../features/authentication/presentation/providers/authentication_provider.dart';
-import '../../features/dashboard/presentation/pages/farmer_dashboard_page.dart';
 import '../../features/dashboard/buyer/presentation/pages/buyer_dashboard_page.dart';
 import '../../features/dashboard/business_buyer/presentation/pages/business_buyer_dashboard_page.dart';
+import '../../features/dashboard/presentation/pages/farmer_workspace_pages.dart';
 
 String roleDashboardLocation(String role) => switch (role) {
   'farmer' => '/dashboard/farmer',
@@ -24,7 +24,10 @@ String? appRouteRedirect(AuthenticationState auth, String location) {
   if (auth.isAuthenticated) {
     final destination = roleDashboardLocation(auth.user!.role);
     if (destination != '/login' &&
-        (isAuthPage || (isDashboard && location != destination))) {
+        (isAuthPage ||
+            (isDashboard &&
+                location != destination &&
+                !location.startsWith('$destination/')))) {
       return destination;
     }
   } else if (isDashboard) {
@@ -53,9 +56,102 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/register',
         builder: (context, state) => const RegisterPage(),
       ),
-      GoRoute(
-        path: '/dashboard/farmer',
-        builder: (context, state) => const FarmerDashboardPage(),
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, shell) =>
+            FarmerNavigationShell(navigationShell: shell),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/dashboard/farmer',
+                builder: (context, state) =>
+                    const FarmerWorkspacePage(section: FarmerSection.home),
+                routes: [
+                  GoRoute(
+                    path: 'products/new',
+                    builder: (context, state) =>
+                        const FarmerRecordFormPage(kind: 'product'),
+                  ),
+                  GoRoute(
+                    path: 'products/:id/edit',
+                    builder: (context, state) => FarmerRecordFormPage(
+                      kind: 'product',
+                      recordId: int.tryParse(state.pathParameters['id'] ?? ''),
+                      initial: state.extra as Map<String, dynamic>?,
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'batches/new',
+                    builder: (context, state) =>
+                        const FarmerRecordFormPage(kind: 'batch'),
+                  ),
+                  GoRoute(
+                    path: 'batches/:id/edit',
+                    builder: (context, state) => FarmerRecordFormPage(
+                      kind: 'batch',
+                      recordId: int.tryParse(state.pathParameters['id'] ?? ''),
+                      initial: state.extra as Map<String, dynamic>?,
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'profile/new',
+                    builder: (context, state) =>
+                        const FarmerRecordFormPage(kind: 'profile'),
+                  ),
+                  GoRoute(
+                    path: 'profile/:id/edit',
+                    builder: (context, state) => FarmerRecordFormPage(
+                      kind: 'profile',
+                      recordId: int.tryParse(state.pathParameters['id'] ?? ''),
+                      initial: state.extra as Map<String, dynamic>?,
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'notifications',
+                    builder: (context, state) =>
+                        const FarmerNotificationsPage(),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/dashboard/farmer/products',
+                builder: (context, state) =>
+                    const FarmerWorkspacePage(section: FarmerSection.products),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/dashboard/farmer/batches',
+                builder: (context, state) =>
+                    const FarmerWorkspacePage(section: FarmerSection.batches),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/dashboard/farmer/orders',
+                builder: (context, state) =>
+                    const FarmerWorkspacePage(section: FarmerSection.orders),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/dashboard/farmer/profile',
+                builder: (context, state) =>
+                    const FarmerWorkspacePage(section: FarmerSection.profile),
+              ),
+            ],
+          ),
+        ],
       ),
       GoRoute(
         path: '/dashboard/buyer',

@@ -34,4 +34,6 @@ class AuthenticationService {
   void setToken(String? token) => _api.token = token;
 
   void setRole(String? role) => _api.role = UserRole.tryParse(role);
+
+  void setUserId(int? userId) => _api.currentUserId = userId;
 }

@@ -9,9 +9,17 @@ import '../permissions/user_role.dart';
 
 /// Shared HTTP client for the FarmerLink API.
 class ApiClient {
-  ApiClient({http.Client? client, String? baseUrl, this.token, this.role})
-    : _client = client ?? http.Client(),
-      baseUrl = (baseUrl ?? Environment.apiUrl).replaceFirst(RegExp(r'/$'), '');
+  ApiClient({
+    http.Client? client,
+    String? baseUrl,
+    this.token,
+    this.role,
+    this.currentUserId,
+  }) : _client = client ?? http.Client(),
+       baseUrl = (baseUrl ?? Environment.apiUrl).replaceFirst(
+         RegExp(r'/$'),
+         '',
+       );
 
   static final ApiClient instance = ApiClient();
 
@@ -19,16 +27,29 @@ class ApiClient {
   final String baseUrl;
   String? token;
   UserRole? role;
+  int? currentUserId;
   Future<void> Function()? onUnauthorized;
   final ApiPermissionChecker _permissionChecker = const ApiPermissionChecker();
 
-  void setAccessContext({required String? token, required String? role}) {
+  void setAccessContext({
+    required String? token,
+    required String? role,
+    int? userId,
+  }) {
     this.token = token;
     this.role = UserRole.tryParse(role);
+    currentUserId = userId;
   }
 
-  void _check(String method, String path, {Object? body}) => _permissionChecker
-      .check(method: method, path: path, token: token, role: role, body: body);
+  void _check(String method, String path, {Object? body}) =>
+      _permissionChecker.check(
+        method: method,
+        path: path,
+        token: token,
+        role: role,
+        authenticatedUserId: currentUserId,
+        body: body,
+      );
 
   Map<String, String> _headers({String? token, bool json = true}) => {
     if (json) 'Content-Type': 'application/json',

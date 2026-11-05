@@ -120,6 +120,7 @@ class ApiPermissionChecker {
     required String path,
     required String? token,
     required UserRole? role,
+    int? authenticatedUserId,
     Object? body,
   }) {
     final normalized = _normalizePath(path);
@@ -153,7 +154,7 @@ class ApiPermissionChecker {
         '${role.apiValue} is not allowed to $verb $normalized.',
       );
     }
-    _checkOperation(role, verb, normalized, body);
+    _checkOperation(role, verb, normalized, body, authenticatedUserId);
   }
 
   String _normalizePath(String path) {
@@ -184,6 +185,7 @@ class ApiPermissionChecker {
     String method,
     String path,
     Object? body,
+    int? authenticatedUserId,
   ) {
     if (method == 'PATCH' &&
         path.startsWith('/notifications/') &&
@@ -223,10 +225,25 @@ class ApiPermissionChecker {
     final keys = body.keys.map((key) => key.toString()).toSet();
     final forbidden = <String>{};
     if (role == UserRole.farmer) {
-      if (path == '/products' || path.startsWith('/products/')) {
+      if (path == '/products' && method == 'POST') {
+        if (body['farmer_id'] != authenticatedUserId ||
+            authenticatedUserId == null) {
+          throw const PermissionException(
+            'Product creation must use the authenticated farmer ID required by the API schema.',
+          );
+        }
+      } else if (path == '/products' || path.startsWith('/products/')) {
         forbidden.add('farmer_id');
       }
-      if (path == '/harvest-batches' || path.startsWith('/harvest-batches/')) {
+      if (path == '/harvest-batches' && method == 'POST') {
+        if (body['farmer_id'] != authenticatedUserId ||
+            authenticatedUserId == null) {
+          throw const PermissionException(
+            'Harvest batch creation must use the authenticated farmer ID required by the API schema.',
+          );
+        }
+      } else if (path == '/harvest-batches' ||
+          path.startsWith('/harvest-batches/')) {
         forbidden.addAll({'farmer_id', 'product_id'});
       }
       if (path == '/farmer-profiles' || path.startsWith('/farmer-profiles/')) {
