@@ -1,11 +1,10 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 
 import '../../../../core/services/api_client.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../authentication/domain/entities/user.dart';
 import '../models/shopping_dashboard_models.dart';
+import 'agricultural_dashboard_header.dart';
 
 class ShoppingDashboardHeader extends StatelessWidget {
   const ShoppingDashboardHeader({
@@ -38,106 +37,19 @@ class ShoppingDashboardHeader extends StatelessWidget {
             businessProfile!.province,
           ].where((part) => part.trim().isNotEmpty).join(', ');
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 23),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.primaryGreen, AppColors.darkGreen],
-        ),
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(27)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.eco_rounded,
-                color: AppColors.harvestYellow,
-                size: 25,
-              ),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Text(
-                  'FarmerLink  DAVNOR',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 14,
-                    letterSpacing: .2,
-                  ),
-                ),
-              ),
-              _NotificationButton(
-                count: unreadNotifications,
-                onPressed: onNotifications,
-              ),
-              IconButton(
-                tooltip: 'Sign out',
-                onPressed: onSignOut,
-                color: Colors.white.withValues(alpha: .88),
-                icon: const Icon(Icons.logout_rounded, size: 21),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          Text(
-            businessMode ? 'Wholesale sourcing' : _greeting(),
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: .76),
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 5),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title.isEmpty ? 'FarmerLink shopper' : title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 23,
-                        height: 1.1,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -.45,
-                      ),
-                    ),
-                    const SizedBox(height: 7),
-                    Text(
-                      subtitle.isEmpty
-                          ? 'Business profile location not provided'
-                          : subtitle,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: .76),
-                        fontSize: 11.5,
-                        height: 1.35,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              _ProfileAvatar(avatar: user.avatar),
-            ],
-          ),
-          if (businessProfile != null) ...[
-            const SizedBox(height: 10),
-            _BusinessVerification(status: businessProfile!.verificationStatus),
-          ],
-        ],
-      ),
+    return AgriculturalDashboardHeader(
+      eyebrow: businessMode ? 'Wholesale sourcing' : _greeting(),
+      title: title.isEmpty ? 'FarmerLink shopper' : title,
+      subtitle: subtitle.isEmpty
+          ? 'Business profile location not provided'
+          : subtitle,
+      avatar: user.avatar,
+      notificationCount: unreadNotifications,
+      onNotifications: onNotifications,
+      onSignOut: onSignOut,
+      status: businessProfile == null
+          ? null
+          : _BusinessVerification(status: businessProfile!.verificationStatus),
     );
   }
 
@@ -150,63 +62,6 @@ class ShoppingDashboardHeader extends StatelessWidget {
         : 'Good evening';
     return '$greeting, ${user.firstName}';
   }
-}
-
-class _NotificationButton extends StatelessWidget {
-  const _NotificationButton({required this.count, required this.onPressed});
-  final int count;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) => IconButton(
-    tooltip: count == 0 ? 'Notifications' : '$count unread notifications',
-    onPressed: onPressed,
-    color: Colors.white,
-    icon: Badge(
-      isLabelVisible: count > 0,
-      label: Text(count > 99 ? '99+' : '$count'),
-      child: const Icon(Icons.notifications_none_rounded),
-    ),
-  );
-}
-
-class _ProfileAvatar extends StatelessWidget {
-  const _ProfileAvatar({this.avatar});
-  final String? avatar;
-
-  @override
-  Widget build(BuildContext context) {
-    final value = avatar;
-    if (value != null && value.startsWith('data:image/')) {
-      try {
-        final index = value.indexOf(',');
-        if (index > 0) {
-          return CircleAvatar(
-            radius: 24,
-            backgroundColor: Colors.white,
-            child: ClipOval(
-              child: Image.memory(
-                base64Decode(value.substring(index + 1)),
-                width: 44,
-                height: 44,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => _fallback(),
-              ),
-            ),
-          );
-        }
-      } on FormatException {
-        return _fallback();
-      }
-    }
-    return _fallback();
-  }
-
-  Widget _fallback() => const CircleAvatar(
-    radius: 24,
-    backgroundColor: Color(0xFFEAF3E5),
-    child: Icon(Icons.person_rounded, color: AppColors.primaryGreen),
-  );
 }
 
 class _BusinessVerification extends StatelessWidget {

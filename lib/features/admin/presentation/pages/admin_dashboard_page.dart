@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,6 +9,7 @@ import '../../data/models/admin_dashboard_data.dart';
 import '../../presentation/providers/admin_analytics_provider.dart';
 import '../../presentation/providers/admin_dashboard_data_provider.dart';
 import '../../presentation/widgets/admin_navigation_bar.dart';
+import '../../../dashboard/shared/widgets/agricultural_dashboard_header.dart';
 import '../admin_crud_pages.dart' show adminModules;
 
 class AdminDashboardPage extends ConsumerWidget {
@@ -21,69 +20,19 @@ class AdminDashboardPage extends ConsumerWidget {
     final user = ref.watch(authenticationProvider).user;
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.cream,
-        title: const Text(
-          'FarmerLink DAVNOR',
-          style: TextStyle(
-            color: AppColors.darkGreen,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'Search management pages',
-            onPressed: () => _showManagementSearch(context),
-            icon: const Icon(Icons.search),
-          ),
-          IconButton(
-            tooltip: 'Notifications',
-            onPressed: () => context.go('/dashboard/admin/notifications'),
-            icon: const Icon(Icons.notifications_none_outlined),
-          ),
-          PopupMenuButton<String>(
-            tooltip: 'Administrator account',
-            onSelected: (value) async {
-              if (value == 'profile') {
-                context.go('/dashboard/admin/profile');
-              } else if (value == 'logout') {
-                await ref.read(authenticationProvider.notifier).logout();
-                if (context.mounted) context.go('/login');
-              }
-            },
-            itemBuilder: (context) => const [
-              PopupMenuItem(value: 'profile', child: Text('Account profile')),
-              PopupMenuItem(value: 'logout', child: Text('Sign out')),
-            ],
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              child: _AdminAvatar(
-                firstName: user?.firstName ?? 'Admin',
-                avatar: user?.avatar,
-              ),
-            ),
-          ),
-        ],
+      body: _DashboardBody(
+        userName: user?.firstName ?? 'Administrator',
+        avatar: user?.avatar,
       ),
-      body: _DashboardBody(userName: user?.firstName ?? 'Administrator'),
       bottomNavigationBar: const AdminBottomNavigationBar(selectedIndex: 0),
     );
-  }
-
-  Future<void> _showManagementSearch(BuildContext context) async {
-    final selected = await showDialog<String>(
-      context: context,
-      builder: (context) => const _ManagementSearchDialog(),
-    );
-    if (selected != null && context.mounted) {
-      context.go('/dashboard/admin/$selected');
-    }
   }
 }
 
 class _DashboardBody extends ConsumerWidget {
-  const _DashboardBody({required this.userName});
+  const _DashboardBody({required this.userName, this.avatar});
   final String userName;
+  final String? avatar;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -98,70 +47,92 @@ class _DashboardBody extends ConsumerWidget {
       },
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.zero,
         children: [
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1200),
+              child: AgriculturalDashboardHeader(
+                eyebrow: _greeting(),
+                title: userName,
+                subtitle:
+                    'Manage marketplace activity and FarmerLink operations.',
+                avatar: avatar,
+                onAvatarTap: () => context.go('/dashboard/admin/profile'),
+                onNotifications: () =>
+                    context.go('/dashboard/admin/notifications'),
+                onSignOut: () async {
+                  await ref.read(authenticationProvider.notifier).logout();
+                  if (context.mounted) context.go('/login');
+                },
+              ),
+            ),
+          ),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1200),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Welcome back, $userName',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: AppColors.darkGreen,
-                    fontWeight: FontWeight.w800,
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Welcome back, $userName',
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      color: AppColors.darkGreen,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Monitor marketplace activity, manage users, and oversee FarmerLink DAVNOR operations.',
-                ),
-                const SizedBox(height: 4),
-                Text(_today(), style: Theme.of(context).textTheme.bodySmall),
-                const SizedBox(height: 12),
-                SearchBar(
-                  leading: const Icon(Icons.search),
-                  hintText: 'Search management pages',
-                  onTap: () => _showManagementSearch(context),
-                  trailing: const [Icon(Icons.arrow_forward)],
-                ),
-                const SizedBox(height: 10),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: OutlinedButton.icon(
-                    onPressed: () => context.go('/dashboard/admin/analytics'),
-                    icon: const Icon(Icons.insights_outlined),
-                    label: const Text('View analytics'),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Monitor marketplace activity, manage users, and oversee FarmerLink DAVNOR operations.',
                   ),
-                ),
-                const SizedBox(height: 20),
-                analytics.when(
-                  loading: () => const _AnalyticsLoading(),
-                  error: (error, _) => _RetryPanel(
-                    message: _friendlyError(error),
-                    onRetry: () => ref.invalidate(adminAnalyticsProvider),
+                  const SizedBox(height: 4),
+                  Text(_today(), style: Theme.of(context).textTheme.bodySmall),
+                  const SizedBox(height: 12),
+                  SearchBar(
+                    leading: const Icon(Icons.search),
+                    hintText: 'Search management pages',
+                    onTap: () => _showManagementSearch(context),
+                    trailing: const [Icon(Icons.arrow_forward)],
                   ),
-                  data: (overview) =>
-                      _DashboardAnalyticsSummary(overview: overview),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Recent records',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: AppColors.darkGreen,
-                    fontWeight: FontWeight.w800,
+                  const SizedBox(height: 10),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: OutlinedButton.icon(
+                      onPressed: () => context.go('/dashboard/admin/analytics'),
+                      icon: const Icon(Icons.insights_outlined),
+                      label: const Text('View analytics'),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                records.when(
-                  loading: () => const _AnalyticsLoading(compact: true),
-                  error: (error, _) => _RetryPanel(
-                    message: _friendlyError(error),
-                    onRetry: () => ref.invalidate(adminDashboardDataProvider),
+                  const SizedBox(height: 20),
+                  analytics.when(
+                    loading: () => const _AnalyticsLoading(),
+                    error: (error, _) => _RetryPanel(
+                      message: _friendlyError(error),
+                      onRetry: () => ref.invalidate(adminAnalyticsProvider),
+                    ),
+                    data: (overview) =>
+                        _DashboardAnalyticsSummary(overview: overview),
                   ),
-                  data: (data) => _RecentSections(data: data),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  Text(
+                    'Recent records',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      color: AppColors.darkGreen,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  records.when(
+                    loading: () => const _AnalyticsLoading(compact: true),
+                    error: (error, _) => _RetryPanel(
+                      message: _friendlyError(error),
+                      onRetry: () => ref.invalidate(adminDashboardDataProvider),
+                    ),
+                    data: (data) => _RecentSections(data: data),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -177,6 +148,16 @@ class _DashboardBody extends ConsumerWidget {
     if (selected != null && context.mounted) {
       context.go('/dashboard/admin/$selected');
     }
+  }
+
+  String _greeting() {
+    final hour = DateTime.now().hour;
+    final greeting = hour < 12
+        ? 'Good morning'
+        : hour < 18
+        ? 'Good afternoon'
+        : 'Good evening';
+    return '$greeting, administrator';
   }
 }
 
@@ -218,7 +199,7 @@ class _DashboardAnalyticsSummary extends StatelessWidget {
                       elevation: 0,
                       margin: EdgeInsets.zero,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(18),
                         side: const BorderSide(color: Color(0xFFE7EADF)),
                       ),
                       child: Padding(
@@ -271,7 +252,7 @@ class _DashboardAnalyticsSummary extends StatelessWidget {
               elevation: 0,
               margin: EdgeInsets.zero,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(18),
                 side: const BorderSide(color: Color(0xFFE7EADF)),
               ),
               child: ListTile(
@@ -411,7 +392,7 @@ class _RecentSections extends StatelessWidget {
     required List<Widget> children,
   }) => Card(
     color: Colors.white,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
     child: Column(
       children: [
         Padding(
@@ -598,35 +579,6 @@ class _ManagementSearchDialogState extends State<_ManagementSearchDialog> {
           child: const Text('Close'),
         ),
       ],
-    );
-  }
-}
-
-class _AdminAvatar extends StatelessWidget {
-  const _AdminAvatar({required this.firstName, this.avatar});
-  final String firstName;
-  final String? avatar;
-
-  @override
-  Widget build(BuildContext context) {
-    final value = avatar ?? '';
-    if (value.startsWith('data:image/')) {
-      final comma = value.indexOf(',');
-      if (comma > 0) {
-        try {
-          return CircleAvatar(
-            backgroundImage: MemoryImage(
-              base64Decode(value.substring(comma + 1)),
-            ),
-          );
-        } on FormatException {
-          // Show initials if the stored avatar is malformed.
-        }
-      }
-    }
-    return CircleAvatar(
-      backgroundColor: AppColors.accentGreen.withValues(alpha: .2),
-      child: Text(firstName.isEmpty ? 'A' : firstName[0].toUpperCase()),
     );
   }
 }
