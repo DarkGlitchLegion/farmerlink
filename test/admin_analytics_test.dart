@@ -9,33 +9,36 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 void main() {
-  test('analytics service uses the shared admin client and maps API fields', () async {
-    late http.Request captured;
-    final client = ApiClient(
-      client: MockClient((request) async {
-        captured = request;
-        return http.Response(jsonEncode(_response), 200);
-      }),
-      baseUrl: 'http://farmerlink.test/api/v1',
-      token: 'admin-token',
-      role: UserRole.admin,
-      currentUserId: 1,
-    );
+  test(
+    'analytics service uses the shared admin client and maps API fields',
+    () async {
+      late http.Request captured;
+      final client = ApiClient(
+        client: MockClient((request) async {
+          captured = request;
+          return http.Response(jsonEncode(_response), 200);
+        }),
+        baseUrl: 'http://farmerlink.test/api/v1',
+        token: 'admin-token',
+        role: UserRole.admin,
+        currentUserId: 1,
+      );
 
-    final result = await AdminAnalyticsService(api: client).getOverview();
+      final result = await AdminAnalyticsService(api: client).getOverview();
 
-    expect(captured.method, 'GET');
-    expect(captured.url.path, '/api/v1/analytics/overview');
-    expect(captured.headers['authorization'], 'Bearer admin-token');
-    expect(result.users.total, 42);
-    expect(result.users.byRole['farmer'], 20);
-    expect(result.catalog.availableHarvestQuantity, 83);
-    expect(result.orders.byStatus['delivered'], 12);
-    expect(result.profiles.farmerProfilesByVerification['pending'], 3);
-    expect(result.cropReports.bySeverity['critical'], 1);
-    expect(result.topDeliveredProducts.single.productName, 'Tomato');
-    expect(result.topDeliveredProducts.single.quantityDelivered, 50);
-  });
+      expect(captured.method, 'GET');
+      expect(captured.url.path, '/api/v1/analytics/overview');
+      expect(captured.headers['authorization'], 'Bearer admin-token');
+      expect(result.users.total, 42);
+      expect(result.users.byRole['farmer'], 20);
+      expect(result.catalog.availableHarvestQuantity, 83);
+      expect(result.orders.byStatus['delivered'], 12);
+      expect(result.profiles.farmerProfilesByVerification['pending'], 3);
+      expect(result.cropReports.bySeverity['critical'], 1);
+      expect(result.topDeliveredProducts.single.productName, 'Tomato');
+      expect(result.topDeliveredProducts.single.quantityDelivered, 50);
+    },
+  );
 
   test('analytics endpoint is rejected locally for non-admin roles', () async {
     final client = ApiClient(

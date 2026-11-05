@@ -6,11 +6,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../authentication/presentation/providers/authentication_provider.dart';
+import '../../data/models/admin_analytics.dart';
 import '../../data/models/admin_dashboard_data.dart';
 import '../../presentation/providers/admin_analytics_provider.dart';
 import '../../presentation/providers/admin_dashboard_data_provider.dart';
-import '../../presentation/widgets/admin_analytics_content.dart';
-import '../../presentation/widgets/admin_navigation_panel.dart';
+import '../../presentation/widgets/admin_navigation_bar.dart';
 import '../admin_crud_pages.dart' show adminModules;
 
 class AdminDashboardPage extends ConsumerWidget {
@@ -21,53 +21,49 @@ class AdminDashboardPage extends ConsumerWidget {
     final user = ref.watch(authenticationProvider).user;
     return Scaffold(
       backgroundColor: AppColors.background,
-      drawer: const AdminNavigationDrawer(),
       appBar: AppBar(
-            backgroundColor: AppColors.cream,
-            title: const Text(
-              'FarmerLink DAVNOR',
-              style: TextStyle(
-                color: AppColors.darkGreen,
-                fontWeight: FontWeight.w800,
+        backgroundColor: AppColors.cream,
+        title: const Text(
+          'FarmerLink DAVNOR',
+          style: TextStyle(
+            color: AppColors.darkGreen,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'Search management pages',
+            onPressed: () => _showManagementSearch(context),
+            icon: const Icon(Icons.search),
+          ),
+          IconButton(
+            tooltip: 'Notifications',
+            onPressed: () => context.go('/dashboard/admin/notifications'),
+            icon: const Icon(Icons.notifications_none_outlined),
+          ),
+          PopupMenuButton<String>(
+            tooltip: 'Administrator account',
+            onSelected: (value) async {
+              if (value == 'profile') {
+                context.go('/dashboard/admin/profile');
+              } else if (value == 'logout') {
+                await ref.read(authenticationProvider.notifier).logout();
+                if (context.mounted) context.go('/login');
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(value: 'profile', child: Text('Account profile')),
+              PopupMenuItem(value: 'logout', child: Text('Sign out')),
+            ],
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: _AdminAvatar(
+                firstName: user?.firstName ?? 'Admin',
+                avatar: user?.avatar,
               ),
             ),
-            actions: [
-              IconButton(
-                tooltip: 'Search management pages',
-                onPressed: () => _showManagementSearch(context),
-                icon: const Icon(Icons.search),
-              ),
-              IconButton(
-                tooltip: 'Notifications',
-                onPressed: () => context.go('/dashboard/admin/notifications'),
-                icon: const Icon(Icons.notifications_none_outlined),
-              ),
-              PopupMenuButton<String>(
-                tooltip: 'Administrator account',
-                onSelected: (value) async {
-                  if (value == 'profile') {
-                    context.go('/dashboard/admin/profile');
-                  } else if (value == 'logout') {
-                    await ref.read(authenticationProvider.notifier).logout();
-                    if (context.mounted) context.go('/login');
-                  }
-                },
-                itemBuilder: (context) => const [
-                  PopupMenuItem(
-                    value: 'profile',
-                    child: Text('Account profile'),
-                  ),
-                  PopupMenuItem(value: 'logout', child: Text('Sign out')),
-                ],
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  child: _AdminAvatar(
-                    firstName: user?.firstName ?? 'Admin',
-                    avatar: user?.avatar,
-                  ),
-                ),
-              ),
-            ],
+          ),
+        ],
       ),
       body: _DashboardBody(userName: user?.firstName ?? 'Administrator'),
       bottomNavigationBar: const AdminBottomNavigationBar(selectedIndex: 0),
@@ -129,6 +125,15 @@ class _DashboardBody extends ConsumerWidget {
                   onTap: () => _showManagementSearch(context),
                   trailing: const [Icon(Icons.arrow_forward)],
                 ),
+                const SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: OutlinedButton.icon(
+                    onPressed: () => context.go('/dashboard/admin/analytics'),
+                    icon: const Icon(Icons.insights_outlined),
+                    label: const Text('View analytics'),
+                  ),
+                ),
                 const SizedBox(height: 20),
                 analytics.when(
                   loading: () => const _AnalyticsLoading(),
@@ -136,11 +141,12 @@ class _DashboardBody extends ConsumerWidget {
                     message: _friendlyError(error),
                     onRetry: () => ref.invalidate(adminAnalyticsProvider),
                   ),
-                  data: (overview) => AdminAnalyticsContent(overview: overview),
+                  data: (overview) =>
+                      _DashboardAnalyticsSummary(overview: overview),
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Recent activity',
+                  'Recent records',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     color: AppColors.darkGreen,
                     fontWeight: FontWeight.w800,
@@ -172,6 +178,127 @@ class _DashboardBody extends ConsumerWidget {
       context.go('/dashboard/admin/$selected');
     }
   }
+}
+
+class _DashboardAnalyticsSummary extends StatelessWidget {
+  const _DashboardAnalyticsSummary({required this.overview});
+  final AdminAnalyticsOverview overview;
+
+  @override
+  Widget build(BuildContext context) {
+    final metrics = <(String, String, IconData)>[
+      ('Users', _format(overview.users.total), Icons.people_outline),
+      (
+        'Products',
+        _format(overview.catalog.productsTotal),
+        Icons.inventory_2_outlined,
+      ),
+      ('Orders', _format(overview.orders.total), Icons.receipt_long_outlined),
+      (
+        'Pending farmer reviews',
+        _format(overview.profiles.farmerProfilesByVerification['pending']),
+        Icons.verified_user_outlined,
+      ),
+    ];
+    return Column(
+      children: [
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final columns = constraints.maxWidth > 600 ? 4 : 2;
+            final width = (constraints.maxWidth - (columns - 1) * 8) / columns;
+            return Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final item in metrics)
+                  SizedBox(
+                    width: width,
+                    child: Card(
+                      color: Colors.white,
+                      elevation: 0,
+                      margin: EdgeInsets.zero,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: const BorderSide(color: Color(0xFFE7EADF)),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 11,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              item.$3,
+                              size: 19,
+                              color: AppColors.primaryGreen,
+                            ),
+                            const SizedBox(width: 9),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item.$2,
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  Text(
+                                    item.$1,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+        if (overview.topDeliveredProducts.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: Card(
+              color: Colors.white,
+              elevation: 0,
+              margin: EdgeInsets.zero,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: const BorderSide(color: Color(0xFFE7EADF)),
+              ),
+              child: ListTile(
+                dense: true,
+                leading: const Icon(
+                  Icons.trending_up,
+                  color: AppColors.primaryGreen,
+                ),
+                title: Text(
+                  overview.topDeliveredProducts.first.productName ??
+                      'Top delivered product',
+                ),
+                subtitle: Text(
+                  '${overview.topDeliveredProducts.first.quantityDelivered ?? 0} delivered',
+                ),
+                trailing: TextButton(
+                  onPressed: () => context.go('/dashboard/admin/analytics'),
+                  child: const Text('Analytics'),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  String _format(num? value) => value == null ? '—' : value.toInt().toString();
 }
 
 class _RecentSections extends StatelessWidget {
@@ -421,7 +548,9 @@ class _ManagementSearchDialogState extends State<_ManagementSearchDialog> {
   Widget build(BuildContext context) {
     final analyticsMatches = 'analytics'.contains(query.toLowerCase());
     final results = adminModules
-        .where((module) => module.title.toLowerCase().contains(query.toLowerCase()))
+        .where(
+          (module) => module.title.toLowerCase().contains(query.toLowerCase()),
+        )
         .toList();
     return AlertDialog(
       title: const Text('Find a management page'),

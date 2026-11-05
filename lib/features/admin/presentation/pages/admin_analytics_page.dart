@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../presentation/providers/admin_analytics_provider.dart';
 import '../../presentation/widgets/admin_analytics_content.dart';
-import '../../presentation/widgets/admin_navigation_panel.dart';
+import '../../presentation/widgets/admin_navigation_bar.dart';
 
 class AdminAnalyticsPage extends ConsumerWidget {
   const AdminAnalyticsPage({super.key});
@@ -14,7 +14,6 @@ class AdminAnalyticsPage extends ConsumerWidget {
     final analytics = ref.watch(adminAnalyticsProvider);
     return Scaffold(
       backgroundColor: AppColors.background,
-      drawer: const AdminNavigationDrawer(),
       appBar: AppBar(
         title: const Text('Analytics'),
         backgroundColor: AppColors.cream,

@@ -26,7 +26,9 @@ final adminDashboardDataProvider =
         ),
         _pendingProfiles(
           total: analytics.profiles.businessBuyerProfilesTotal ?? 0,
-          pendingCount: analytics.profiles
+          pendingCount:
+              analytics
+                  .profiles
                   .businessBuyerProfilesByVerification['pending'] ??
               0,
           loadPage: (offset, limit) => ProfileService()

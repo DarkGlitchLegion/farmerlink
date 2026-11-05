@@ -216,10 +216,10 @@ class AdminAnalyticsContent extends StatelessWidget {
   );
 
   static Widget _sectionTitle(BuildContext context, String title) => Padding(
-    padding: const EdgeInsets.only(top: 18, bottom: 10),
+    padding: const EdgeInsets.only(top: 14, bottom: 8),
     child: Text(
       title,
-      style: Theme.of(context).textTheme.titleLarge
+      style: Theme.of(context).textTheme.titleMedium
           ?.copyWith(color: AppColors.darkGreen, fontWeight: FontWeight.w800),
     ),
   );
@@ -234,8 +234,8 @@ class AdminAnalyticsContent extends StatelessWidget {
             ? (constraints.maxWidth - 12) / 2
             : constraints.maxWidth;
         return Wrap(
-          spacing: 12,
-          runSpacing: 12,
+          spacing: 8,
+          runSpacing: 8,
           children: [
             for (final metric in available)
               SizedBox(
@@ -264,23 +264,46 @@ class _MetricCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Card(
     color: Colors.white,
-    elevation: 1,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    elevation: 0,
+    margin: EdgeInsets.zero,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+      side: const BorderSide(color: Color(0xFFE7EADF)),
+    ),
     child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+      child: Row(
         children: [
-          Icon(metric.icon, color: AppColors.primaryGreen),
-          const SizedBox(height: 12),
-          Text(
-            metric.currency
-                ? '₱${_number(metric.value!)}'
-                : _number(metric.value!),
-            style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w800),
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: AppColors.accentGreen.withValues(alpha: .12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(metric.icon, color: AppColors.primaryGreen, size: 19),
           ),
-          const SizedBox(height: 4),
-          Text(metric.label, style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  metric.currency
+                      ? '₱${_number(metric.value!)}'
+                      : _number(metric.value!),
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                Text(
+                  metric.label,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     ),
@@ -300,10 +323,14 @@ class _BreakdownCard extends StatelessWidget {
     );
     return Card(
       color: Colors.white,
-      margin: const EdgeInsets.only(top: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      margin: const EdgeInsets.only(top: 8),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: Color(0xFFE7EADF)),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -324,7 +351,7 @@ class _BreakdownCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(5),
                 child: LinearProgressIndicator(
                   value: maxValue == 0 ? 0 : entry.value / maxValue,
-                  minHeight: 8,
+                  minHeight: 5,
                   color: AppColors.primaryGreen,
                   backgroundColor: AppColors.accentGreen.withValues(alpha: .15),
                 ),

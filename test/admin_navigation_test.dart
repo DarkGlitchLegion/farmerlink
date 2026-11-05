@@ -1,5 +1,5 @@
 import 'package:farmerlink/features/admin/presentation/pages/admin_dashboard_page.dart';
-import 'package:farmerlink/features/admin/presentation/admin_crud_pages.dart';
+import 'package:farmerlink/features/admin/presentation/pages/admin_profile_page.dart';
 import 'package:farmerlink/features/admin/data/models/admin_analytics.dart';
 import 'package:farmerlink/features/admin/data/models/admin_dashboard_data.dart';
 import 'package:farmerlink/features/admin/presentation/providers/admin_analytics_provider.dart';
@@ -66,7 +66,8 @@ void main() {
     await tester.tap(find.byType(NavigationDestination).at(4));
     await tester.pumpAndSettle();
 
-    expect(find.text('ada@example.com'), findsOneWidget);
+    expect(find.byType(TextFormField), findsNWidgets(6));
+    expect(find.text('Save changes'), findsOneWidget);
     expect(find.byType(NavigationBar), findsOneWidget);
   });
 }

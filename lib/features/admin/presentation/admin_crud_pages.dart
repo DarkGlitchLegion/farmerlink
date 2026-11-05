@@ -15,8 +15,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/image_file_picker_field.dart';
 import '../../../core/widgets/base64_image_preview.dart';
 import '../../../core/services/api_client.dart';
-import 'widgets/admin_navigation_panel.dart';
-import '../../authentication/presentation/providers/authentication_provider.dart';
+import 'widgets/admin_navigation_bar.dart';
 
 class AdminModule {
   const AdminModule(this.key, this.title, this.icon, {this.create = true});
@@ -47,63 +46,6 @@ const adminModules = <AdminModule>[
   AdminModule('notifications', 'Notifications', Icons.notifications_none),
   AdminModule('orders', 'Orders', Icons.shopping_bag_outlined, create: false),
 ];
-
-class AdminProfilePage extends ConsumerWidget {
-  const AdminProfilePage({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(authenticationProvider).user;
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      drawer: const AdminNavigationDrawer(),
-      appBar: AppBar(
-        title: const Text('Account'),
-        backgroundColor: AppColors.background,
-      ),
-      bottomNavigationBar: const AdminBottomNavigationBar(selectedIndex: 4),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          CircleAvatar(
-            radius: 36,
-            child: Text(
-              user?.firstName.isNotEmpty == true
-                  ? user!.firstName[0].toUpperCase()
-                  : 'A',
-            ),
-          ),
-          const SizedBox(height: 16),
-          Center(
-            child: Text(
-              '${user?.firstName ?? ''} ${user?.lastName ?? ''}'.trim(),
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-          ),
-          if (user?.email != null)
-            ListTile(
-              leading: const Icon(Icons.email_outlined),
-              title: Text(user!.email),
-            ),
-          if (user?.role != null)
-            ListTile(
-              leading: const Icon(Icons.admin_panel_settings_outlined),
-              title: Text(user!.role),
-            ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: () async {
-              await ref.read(authenticationProvider.notifier).logout();
-              if (context.mounted) context.go('/login');
-            },
-            icon: const Icon(Icons.logout),
-            label: const Text('Sign out'),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class AdminResourcePage extends ConsumerStatefulWidget {
   const AdminResourcePage({super.key, required this.resource});
@@ -157,7 +99,6 @@ class _AdminResourcePageState extends ConsumerState<AdminResourcePage> {
     }
     return Scaffold(
       backgroundColor: AppColors.background,
-      drawer: const AdminNavigationDrawer(),
       bottomNavigationBar: AdminBottomNavigationBar(
         selectedIndex: switch (widget.resource) {
           'users' => 1,
@@ -357,7 +298,6 @@ class _AdminRecordDetailPageState extends ConsumerState<AdminRecordDetailPage> {
     }
     return Scaffold(
       backgroundColor: AppColors.background,
-      drawer: const AdminNavigationDrawer(),
       bottomNavigationBar: AdminBottomNavigationBar(
         selectedIndex: switch (widget.resource) {
           'users' => 1,
@@ -409,7 +349,18 @@ class _AdminRecordDetailPageState extends ConsumerState<AdminRecordDetailPage> {
                       ),
                       const Divider(height: 24),
                       for (final entry in record.entries)
-                        if (!{'avatar'}.contains(entry.key))
+                        if (!{
+                          'avatar',
+                          if (widget.resource == 'products') ...{
+                            'farmer_id',
+                            'category_id',
+                          },
+                          if (widget.resource == 'market-prices') 'product_id',
+                          if (widget.resource == 'harvest-batches') ...{
+                            'product_id',
+                            'farmer_id',
+                          },
+                        }.contains(entry.key))
                           if (entry.key == 'image' && entry.value != null)
                             Base64ImagePreview(
                               label: _humanize(entry.key),
@@ -648,7 +599,6 @@ class _AdminRecordFormPageState extends ConsumerState<AdminRecordFormPage> {
     }
     return Scaffold(
       backgroundColor: AppColors.background,
-      drawer: const AdminNavigationDrawer(),
       bottomNavigationBar: AdminBottomNavigationBar(
         selectedIndex: switch (widget.resource) {
           'users' => 1,
