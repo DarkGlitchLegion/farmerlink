@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/services/order_service.dart';
+import '../../../../../core/services/product_service.dart';
 import '../../../../authentication/domain/entities/user.dart';
 import '../../../../authentication/presentation/providers/authentication_provider.dart';
 import '../../../presentation/widgets/dashboard_stat_card.dart';
@@ -305,6 +307,7 @@ class _BuyerDashboardPageState extends ConsumerState<BuyerDashboardPage> {
                 key: ValueKey(product.id),
                 product: product,
                 businessMode: false,
+                onTap: () => _showProductDetails(product),
               ),
             ),
           const SizedBox(height: 20),
@@ -353,8 +356,19 @@ class _BuyerDashboardPageState extends ConsumerState<BuyerDashboardPage> {
             )
           else
             ...data.recentOrders.map(
-              (order) =>
-                  ShoppingOrderCard(key: ValueKey(order.id), order: order),
+              (order) => ShoppingOrderCard(
+                key: ValueKey(order.id),
+                order: order,
+                onTap: () => _showOrderDetails(order),
+                onCancel:
+                    const {
+                      'pending',
+                      'confirmed',
+                      'processing',
+                    }.contains(order.status)
+                    ? () => _cancelOrder(order)
+                    : null,
+              ),
             ),
         ],
       ),
@@ -371,6 +385,12 @@ class _BuyerDashboardPageState extends ConsumerState<BuyerDashboardPage> {
           const SizedBox(height: 12),
           _AccountDetails(user: data.user),
           const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () => context.push('/marketplace-info'),
+            icon: const Icon(Icons.query_stats_outlined),
+            label: const Text('Categories, market prices and advisories'),
+          ),
+          const SizedBox(height: 12),
           const ShoppingEmptyState(
             title: 'Location not provided',
             message: 'Buyer accounts do not include a location in the available API profile.',
@@ -386,6 +406,131 @@ class _BuyerDashboardPageState extends ConsumerState<BuyerDashboardPage> {
       ),
     ),
   ];
+
+  Future<void> _showOrderDetails(ShoppingOrder order) async {
+    try {
+      final values = await Future.wait([
+        OrderService().get(order.id),
+        OrderService().listItems(order.id),
+      ]);
+      if (!mounted) return;
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (context) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  order.orderNumber,
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                Text('Status: ${order.status} · ${order.fulfillmentStatus}'),
+                Text('Total: ₱${order.totalAmount} · ${order.paymentStatus}'),
+                const Divider(height: 20),
+                if (values[1] is List)
+                  ...(values[1] as List).whereType<Map>().map(
+                    (item) => Text(
+                      'Product ${item['product_id']} · ${item['quantity']} × ₱${item['unit_price']}',
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.toString())));
+      }
+    }
+  }
+
+  Future<void> _showProductDetails(MarketProduct product) async {
+    try {
+      final value = await ProductService().get(product.id);
+      if (!mounted) return;
+      final details = value is Map
+          ? Map<String, dynamic>.from(value)
+          : const <String, dynamic>{};
+      await showModalBottomSheet<void>(
+        context: context,
+        builder: (context) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  product.name,
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                Text('Farmer #${product.farmerId}'),
+                Text('₱${product.pricePerUnit} / ${product.unit}'),
+                if (details['description'] != null)
+                  Text('${details['description']}'),
+                if (product.qualityGrade != null)
+                  Text('Grade ${product.qualityGrade}'),
+                Text('${product.availableQuantity} ${product.unit} available'),
+              ],
+            ),
+          ),
+        ),
+      );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.toString())));
+      }
+    }
+  }
+
+  Future<void> _cancelOrder(ShoppingOrder order) async {
+    final confirmed =
+        await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Cancel order?'),
+            content: Text('Cancel ${order.orderNumber}?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Keep order'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Cancel order'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmed) return;
+    try {
+      await OrderService().update(order.id, {'status': 'cancelled'});
+      await _refresh();
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Order cancelled.')));
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.toString())));
+      }
+    }
+  }
 
   List<MarketProduct> _filteredProducts(
     ShoppingDashboardData data,

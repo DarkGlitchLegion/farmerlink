@@ -3,12 +3,13 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/authentication/presentation/pages/login_page.dart';
 import '../../features/authentication/presentation/pages/register_page.dart';
-import '../../features/authentication/presentation/pages/role_dashboard_page.dart';
 import '../../features/authentication/presentation/pages/splash_gate_page.dart';
 import '../../features/authentication/presentation/providers/authentication_provider.dart';
 import '../../features/dashboard/buyer/presentation/pages/buyer_dashboard_page.dart';
 import '../../features/dashboard/business_buyer/presentation/pages/business_buyer_dashboard_page.dart';
 import '../../features/dashboard/presentation/pages/farmer_workspace_pages.dart';
+import '../../features/admin/presentation/admin_crud_pages.dart';
+import '../../features/marketplace/presentation/public_marketplace_info_page.dart';
 
 String roleDashboardLocation(String role) => switch (role) {
   'farmer' => '/dashboard/farmer',
@@ -51,6 +52,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       GoRoute(path: '/', builder: (context, state) => const SplashGatePage()),
+      GoRoute(
+        path: '/marketplace-info',
+        builder: (context, state) => const PublicMarketplaceInfoPage(),
+      ),
       GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
       GoRoute(
         path: '/register',
@@ -111,6 +116,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     builder: (context, state) =>
                         const FarmerNotificationsPage(),
                   ),
+                  GoRoute(
+                    path: 'crop-reports',
+                    builder: (context, state) => const FarmerCropReportsPage(),
+                    routes: [
+                      GoRoute(
+                        path: 'new',
+                        builder: (context, state) =>
+                            const FarmerRecordFormPage(kind: 'crop_report'),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ],
@@ -163,7 +179,37 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/dashboard/admin',
-        builder: (context, state) => const RoleDashboardPage(role: 'admin'),
+        builder: (context, state) => const AdminDashboardPage(),
+        routes: [
+          GoRoute(
+            path: ':resource',
+            builder: (context, state) =>
+                AdminResourcePage(resource: state.pathParameters['resource']!),
+            routes: [
+              GoRoute(
+                path: 'new',
+                builder: (context, state) => AdminRecordFormPage(
+                  resource: state.pathParameters['resource']!,
+                ),
+              ),
+              GoRoute(
+                path: ':id',
+                builder: (context, state) => AdminRecordDetailPage(
+                  resource: state.pathParameters['resource']!,
+                  id: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
+                ),
+              ),
+              GoRoute(
+                path: ':id/edit',
+                builder: (context, state) => AdminRecordFormPage(
+                  resource: state.pathParameters['resource']!,
+                  id: int.tryParse(state.pathParameters['id'] ?? ''),
+                  initial: state.extra as Map<String, dynamic>?,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     ],
   );

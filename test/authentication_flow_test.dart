@@ -63,6 +63,35 @@ void main() {
         appRouteRedirect(authenticated, '/dashboard/farmer/batches/new'),
         isNull,
       );
+      const buyer = AuthenticationState(
+        status: AuthenticationStatus.authenticated,
+        user: AuthUser(
+          id: 6,
+          firstName: 'Buyer',
+          lastName: 'One',
+          email: 'buyer@example.com',
+          role: 'buyer',
+          status: 'active',
+        ),
+        token: 'buyer-token',
+      );
+      expect(
+        appRouteRedirect(buyer, '/dashboard/admin/users'),
+        '/dashboard/buyer',
+      );
+      const admin = AuthenticationState(
+        status: AuthenticationStatus.authenticated,
+        user: AuthUser(
+          id: 1,
+          firstName: 'Admin',
+          lastName: 'One',
+          email: 'admin@example.com',
+          role: 'admin',
+          status: 'active',
+        ),
+        token: 'admin-token',
+      );
+      expect(appRouteRedirect(admin, '/dashboard/admin/users'), isNull);
     },
   );
 

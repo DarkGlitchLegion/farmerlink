@@ -5,6 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../../core/services/api_client.dart';
+import '../../../../../core/services/order_service.dart';
+import '../../../../../core/services/profile_service.dart';
+import '../../../../../core/services/product_service.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../authentication/domain/entities/user.dart';
 import '../../../../authentication/presentation/providers/authentication_provider.dart';
@@ -285,6 +288,7 @@ class _BusinessBuyerDashboardPageState
                       key: ValueKey(product.id),
                       product: product,
                       businessMode: true,
+                      onTap: () => _showProductDetails(product),
                       onBulkOrder: _hasBatch(data, product)
                           ? () => _placeBulkOrder(data, product)
                           : null,
@@ -392,6 +396,7 @@ class _BusinessBuyerDashboardPageState
                 key: ValueKey(product.id),
                 product: product,
                 businessMode: true,
+                onTap: () => _showProductDetails(product),
                 onBulkOrder: _hasBatch(data, product)
                     ? () => _placeBulkOrder(data, product)
                     : null,
@@ -478,8 +483,19 @@ class _BusinessBuyerDashboardPageState
             )
           else
             ...data.recentOrders.map(
-              (order) =>
-                  ShoppingOrderCard(key: ValueKey(order.id), order: order),
+              (order) => ShoppingOrderCard(
+                key: ValueKey(order.id),
+                order: order,
+                onTap: () => _showOrderDetails(order),
+                onCancel:
+                    const {
+                      'pending',
+                      'confirmed',
+                      'processing',
+                    }.contains(order.status)
+                    ? () => _cancelOrder(order)
+                    : null,
+              ),
             ),
         ],
       ),
@@ -495,6 +511,31 @@ class _BusinessBuyerDashboardPageState
           const ShoppingSectionHeader(title: 'Business account'),
           const SizedBox(height: 11),
           _BusinessAccountCard(user: data.user, profile: data.businessProfile),
+          OutlinedButton.icon(
+            onPressed: () => context.push('/marketplace-info'),
+            icon: const Icon(Icons.query_stats_outlined),
+            label: const Text('Market prices and advisories'),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () => _editBusinessProfile(data.businessProfile),
+            icon: Icon(
+              data.businessProfile == null
+                  ? Icons.add_business
+                  : Icons.edit_outlined,
+            ),
+            label: Text(
+              data.businessProfile == null
+                  ? 'Create business profile'
+                  : 'Edit business profile',
+            ),
+          ),
+          if (data.businessProfile != null)
+            TextButton.icon(
+              onPressed: _deleteBusinessProfile,
+              icon: const Icon(Icons.delete_outline, color: Colors.red),
+              label: const Text('Delete business profile'),
+            ),
           if (data.businessProfile == null) ...[
             const SizedBox(height: 12),
             const ShoppingEmptyState(
@@ -513,6 +554,200 @@ class _BusinessBuyerDashboardPageState
       ),
     ),
   ];
+
+  Future<void> _editBusinessProfile(BusinessProfileData? profile) async {
+    final payload = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => _BusinessProfileForm(profile: profile),
+    );
+    if (payload == null || !mounted) return;
+    try {
+      final service = ProfileService();
+      if (profile == null) {
+        await service.createBusinessBuyerProfile(payload);
+      } else {
+        final current = await service.getMyBusinessBuyerProfile();
+        await service.updateBusinessBuyerProfile(current['id'] as int, payload);
+      }
+      await _refresh();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Business profile saved.')),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.toString())));
+      }
+    }
+  }
+
+  Future<void> _deleteBusinessProfile() async {
+    final confirmed =
+        await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Delete business profile?'),
+            content: const Text('This profile will be permanently deleted.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmed) return;
+    try {
+      final current = await ProfileService().getMyBusinessBuyerProfile();
+      await ProfileService().deleteBusinessBuyerProfile(current['id'] as int);
+      await _refresh();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Business profile deleted.')),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.toString())));
+      }
+    }
+  }
+
+  Future<void> _showOrderDetails(ShoppingOrder order) async {
+    try {
+      final results = await Future.wait([
+        OrderService().get(order.id),
+        OrderService().listItems(order.id),
+      ]);
+      if (!mounted) return;
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (context) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  order.orderNumber,
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                Text('Status: ${order.status} · ${order.fulfillmentStatus}'),
+                Text('Total: ₱${order.totalAmount} · ${order.paymentStatus}'),
+                const Divider(height: 20),
+                if (results[1] is List)
+                  ...(results[1] as List).whereType<Map>().map(
+                    (item) => Text(
+                      'Product ${item['product_id']} · ${item['quantity']} × ₱${item['unit_price']}',
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.toString())));
+      }
+    }
+  }
+
+  Future<void> _showProductDetails(MarketProduct product) async {
+    try {
+      final value = await ProductService().get(product.id);
+      if (!mounted) return;
+      final details = value is Map
+          ? Map<String, dynamic>.from(value)
+          : const <String, dynamic>{};
+      await showModalBottomSheet<void>(
+        context: context,
+        builder: (context) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  product.name,
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                Text('Farmer #${product.farmerId}'),
+                Text(
+                  '₱${product.pricePerUnit} / ${product.unit} · minimum ${product.minimumOrderQuantity} ${product.unit}',
+                ),
+                if (details['description'] != null)
+                  Text('${details['description']}'),
+                if (product.qualityGrade != null)
+                  Text('Grade ${product.qualityGrade}'),
+                Text('${product.availableQuantity} ${product.unit} available'),
+              ],
+            ),
+          ),
+        ),
+      );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.toString())));
+      }
+    }
+  }
+
+  Future<void> _cancelOrder(ShoppingOrder order) async {
+    final confirmed =
+        await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Cancel order?'),
+            content: Text('Cancel ${order.orderNumber}?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Keep order'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Cancel order'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmed) return;
+    try {
+      await OrderService().update(order.id, {'status': 'cancelled'});
+      await _refresh();
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Order cancelled.')));
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.toString())));
+      }
+    }
+  }
 
   List<MarketProduct> _filteredProducts(
     ShoppingDashboardData data,
@@ -539,6 +774,138 @@ class _BusinessBuyerDashboardPageState
     }
     return result;
   }
+}
+
+class _BusinessProfileForm extends StatefulWidget {
+  const _BusinessProfileForm({this.profile});
+  final BusinessProfileData? profile;
+
+  @override
+  State<_BusinessProfileForm> createState() => _BusinessProfileFormState();
+}
+
+class _BusinessProfileFormState extends State<_BusinessProfileForm> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _name;
+  late final TextEditingController _address;
+  late final TextEditingController _registration;
+  late final TextEditingController _contact;
+  late final TextEditingController _province;
+  late String _type;
+
+  @override
+  void initState() {
+    super.initState();
+    final profile = widget.profile;
+    _name = TextEditingController(text: profile?.businessName ?? '');
+    _address = TextEditingController(text: profile?.businessAddress ?? '');
+    _registration = TextEditingController(
+      text: profile?.registrationNumber ?? '',
+    );
+    _contact = TextEditingController(text: profile?.contactPerson ?? '');
+    _province = TextEditingController(text: profile?.province ?? '');
+    _type = profile?.businessType ?? 'restaurant';
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _address.dispose();
+    _registration.dispose();
+    _contact.dispose();
+    _province.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => SafeArea(
+    child: Padding(
+      padding: EdgeInsets.fromLTRB(
+        20,
+        18,
+        20,
+        MediaQuery.viewInsetsOf(context).bottom + 20,
+      ),
+      child: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                widget.profile == null
+                    ? 'Create business profile'
+                    : 'Edit business profile',
+                style: const TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 12),
+              _field(_name, 'Business name'),
+              DropdownButtonFormField<String>(
+                initialValue: _type,
+                decoration: const InputDecoration(labelText: 'Business type'),
+                items: const [
+                  DropdownMenuItem(
+                    value: 'restaurant',
+                    child: Text('Restaurant'),
+                  ),
+                  DropdownMenuItem(value: 'retailer', child: Text('Retailer')),
+                  DropdownMenuItem(
+                    value: 'distributor',
+                    child: Text('Distributor'),
+                  ),
+                ],
+                onChanged: (value) =>
+                    setState(() => _type = value ?? 'restaurant'),
+              ),
+              const SizedBox(height: 12),
+              _field(_address, 'Business address'),
+              _field(_registration, 'Registration number'),
+              _field(_contact, 'Contact person'),
+              _field(_province, 'Province'),
+              if (widget.profile != null)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Verification: ${widget.profile!.verificationStatus} (read only)',
+                  ),
+                ),
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: () {
+                  if (!_formKey.currentState!.validate()) return;
+                  Navigator.pop(context, {
+                    'business_name': _name.text.trim(),
+                    'business_type': _type,
+                    'business_address': _address.text.trim(),
+                    'business_registration_number': _registration.text.trim(),
+                    'contact_person': _contact.text.trim(),
+                    'province': _province.text.trim(),
+                  });
+                },
+                child: const Text('Save profile'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+
+  Widget _field(TextEditingController controller, String label) => Padding(
+    padding: const EdgeInsets.only(bottom: 11),
+    child: TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+      ),
+      validator: (value) =>
+          value?.trim().isEmpty == true ? '$label is required' : null,
+    ),
+  );
 }
 
 class _BusinessAccountCard extends StatelessWidget {

@@ -249,7 +249,14 @@ class ApiPermissionChecker {
       if (path == '/farmer-profiles' || path.startsWith('/farmer-profiles/')) {
         forbidden.addAll({'user_id', 'verification_status'});
       }
-      if (path == '/crop-reports' || path.startsWith('/crop-reports/')) {
+      if (path == '/crop-reports' && method == 'POST') {
+        if (body['farmer_id'] != authenticatedUserId ||
+            authenticatedUserId == null) {
+          throw const PermissionException(
+            'Crop report creation must use the authenticated farmer ID required by the API schema.',
+          );
+        }
+      } else if (path == '/crop-reports' || path.startsWith('/crop-reports/')) {
         forbidden.add('farmer_id');
       }
     }

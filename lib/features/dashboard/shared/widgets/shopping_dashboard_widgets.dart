@@ -404,10 +404,12 @@ class MarketProductCard extends StatelessWidget {
     required this.product,
     required this.businessMode,
     this.onBulkOrder,
+    this.onTap,
   });
   final MarketProduct product;
   final bool businessMode;
   final VoidCallback? onBulkOrder;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -425,127 +427,138 @@ class MarketProductCard extends StatelessWidget {
         ),
       ],
     ),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 52,
-          height: 52,
-          decoration: BoxDecoration(
-            color: const Color(0xFFEAF3E5),
-            borderRadius: BorderRadius.circular(16),
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEAF3E5),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(
+              Icons.eco_rounded,
+              color: AppColors.primaryGreen,
+              size: 27,
+            ),
           ),
-          child: const Icon(
-            Icons.eco_rounded,
-            color: AppColors.primaryGreen,
-            size: 27,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Text(
-                      product.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppColors.darkGreen,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        product.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppColors.darkGreen,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
-                  ),
-                  if (product.qualityGrade?.isNotEmpty == true)
-                    Text(
-                      product.qualityGrade!,
-                      style: const TextStyle(
-                        color: AppColors.primaryGreen,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
+                    if (product.qualityGrade?.isNotEmpty == true)
+                      Text(
+                        product.qualityGrade!,
+                        style: const TextStyle(
+                          color: AppColors.primaryGreen,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    ),
-                ],
-              ),
-              if (product.variety?.isNotEmpty == true) ...[
-                const SizedBox(height: 2),
-                Text(
-                  product.variety!,
-                  style: TextStyle(
-                    color: AppColors.darkGreen.withValues(alpha: .62),
-                    fontSize: 10.5,
-                  ),
+                  ],
                 ),
-              ],
-              const SizedBox(height: 6),
-              Text(
-                'Farmer #${product.farmerId}',
-                style: TextStyle(
-                  color: AppColors.darkGreen.withValues(alpha: .57),
-                  fontSize: 10.5,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 12,
-                runSpacing: 5,
-                children: [
+                if (product.variety?.isNotEmpty == true) ...[
+                  const SizedBox(height: 2),
                   Text(
-                    '${_peso(product.pricePerUnit)} / ${product.unit}',
-                    style: const TextStyle(
-                      color: AppColors.primaryGreen,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 12,
-                    ),
-                  ),
-                  Text(
-                    '${product.availableQuantity} ${product.unit} available',
+                    product.variety!,
                     style: TextStyle(
-                      color: AppColors.darkGreen.withValues(alpha: .66),
+                      color: AppColors.darkGreen.withValues(alpha: .62),
                       fontSize: 10.5,
                     ),
                   ),
-                  if (businessMode)
+                ],
+                const SizedBox(height: 6),
+                Text(
+                  'Farmer #${product.farmerId}',
+                  style: TextStyle(
+                    color: AppColors.darkGreen.withValues(alpha: .57),
+                    fontSize: 10.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 5,
+                  children: [
                     Text(
-                      'Min. order ${product.minimumOrderQuantity} ${product.unit}',
+                      '${_peso(product.pricePerUnit)} / ${product.unit}',
                       style: const TextStyle(
-                        color: AppColors.darkGreen,
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w700,
+                        color: AppColors.primaryGreen,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12,
                       ),
                     ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        if (businessMode) ...[
-          const SizedBox(width: 9),
-          IconButton.filledTonal(
-            tooltip: onBulkOrder == null
-                ? 'No available harvest batch'
-                : 'Place bulk order',
-            onPressed: onBulkOrder,
-            icon: const Icon(Icons.add_shopping_cart_rounded, size: 18),
-            style: IconButton.styleFrom(
-              foregroundColor: AppColors.primaryGreen,
-              backgroundColor: const Color(0xFFEAF3E5),
+                    Text(
+                      '${product.availableQuantity} ${product.unit} available',
+                      style: TextStyle(
+                        color: AppColors.darkGreen.withValues(alpha: .66),
+                        fontSize: 10.5,
+                      ),
+                    ),
+                    if (businessMode)
+                      Text(
+                        'Min. order ${product.minimumOrderQuantity} ${product.unit}',
+                        style: const TextStyle(
+                          color: AppColors.darkGreen,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                  ],
+                ),
+              ],
             ),
           ),
+          if (businessMode) ...[
+            const SizedBox(width: 9),
+            IconButton.filledTonal(
+              tooltip: onBulkOrder == null
+                  ? 'No available harvest batch'
+                  : 'Place bulk order',
+              onPressed: onBulkOrder,
+              icon: const Icon(Icons.add_shopping_cart_rounded, size: 18),
+              style: IconButton.styleFrom(
+                foregroundColor: AppColors.primaryGreen,
+                backgroundColor: const Color(0xFFEAF3E5),
+              ),
+            ),
+          ],
         ],
-      ],
+      ),
     ),
   );
 }
 
 class ShoppingOrderCard extends StatelessWidget {
-  const ShoppingOrderCard({super.key, required this.order});
+  const ShoppingOrderCard({
+    super.key,
+    required this.order,
+    this.onTap,
+    this.onCancel,
+  });
   final ShoppingOrder order;
+  final VoidCallback? onTap;
+  final VoidCallback? onCancel;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -556,63 +569,80 @@ class ShoppingOrderCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       border: Border.all(color: const Color(0xFFE7EBDD)),
     ),
-    child: Row(
+    child: Column(
       children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: const Color(0xFFEAF3E5),
-            borderRadius: BorderRadius.circular(13),
-          ),
-          child: const Icon(
-            Icons.receipt_long_outlined,
-            color: AppColors.primaryGreen,
-            size: 20,
-          ),
-        ),
-        const SizedBox(width: 11),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Row(
             children: [
-              Text(
-                order.orderNumber,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: AppColors.darkGreen,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEAF3E5),
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: const Icon(
+                  Icons.receipt_long_outlined,
+                  color: AppColors.primaryGreen,
+                  size: 20,
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                'Farmer #${order.farmerId} · ${formatShoppingDate(order.createdAt)}',
-                style: TextStyle(
-                  color: AppColors.darkGreen.withValues(alpha: .6),
-                  fontSize: 10,
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      order.orderNumber,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.darkGreen,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Farmer #${order.farmerId} · ${formatShoppingDate(order.createdAt)}',
+                      style: TextStyle(
+                        color: AppColors.darkGreen.withValues(alpha: .6),
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
                 ),
+              ),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    _peso(order.totalAmount),
+                    style: const TextStyle(
+                      color: AppColors.darkGreen,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  _OrderStatus(status: order.status),
+                ],
               ),
             ],
           ),
         ),
-        const SizedBox(width: 8),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              _peso(order.totalAmount),
-              style: const TextStyle(
-                color: AppColors.darkGreen,
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-              ),
+        if (onCancel != null)
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: onCancel,
+              icon: const Icon(Icons.cancel_outlined, size: 16),
+              label: const Text('Cancel order'),
             ),
-            const SizedBox(height: 4),
-            _OrderStatus(status: order.status),
-          ],
-        ),
+          ),
       ],
     ),
   );

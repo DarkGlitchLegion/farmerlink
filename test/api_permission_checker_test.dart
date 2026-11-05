@@ -70,7 +70,7 @@ void main() {
         UserRole.farmer,
         'POST',
         '/crop-reports',
-        body: {'crop_name': 'Corn'},
+        body: {'crop_name': 'Corn', 'farmer_id': 12},
       );
       allow(UserRole.farmer, 'GET', '/orders');
       allow(

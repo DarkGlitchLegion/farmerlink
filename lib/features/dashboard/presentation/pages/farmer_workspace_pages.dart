@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/services/api_client.dart';
+import '../../../../core/services/crop_report_service.dart';
 import '../../../../core/services/harvest_batches_service.dart';
 import '../../../../core/services/notification_service.dart';
 import '../../../../core/services/order_service.dart';
@@ -567,6 +568,7 @@ class _FarmerRecordFormPageState extends ConsumerState<FarmerRecordFormPage> {
   bool get _editing => widget.initial != null || widget.recordId != null;
   bool get _product => widget.kind == 'product';
   bool get _batch => widget.kind == 'batch';
+  bool get _cropReport => widget.kind == 'crop_report';
 
   @override
   void initState() {
@@ -585,6 +587,8 @@ class _FarmerRecordFormPageState extends ConsumerState<FarmerRecordFormPage> {
           ]
         : _batch
         ? ['batch_code', 'quantity', 'remaining_quantity', 'harvest_location']
+        : _cropReport
+        ? ['description', 'image', 'latitude', 'longitude']
         : [
             'farm_name',
             'farm_address',
@@ -601,6 +605,7 @@ class _FarmerRecordFormPageState extends ConsumerState<FarmerRecordFormPage> {
     }
     _categoryId = _asIntOrNull(initial['category_id']);
     _productId = _asIntOrNull(initial['product_id']);
+    if (_cropReport) _status = 'submitted';
     _status = _product
         ? initial['status']?.toString() ?? 'active'
         : _batch
@@ -626,6 +631,8 @@ class _FarmerRecordFormPageState extends ConsumerState<FarmerRecordFormPage> {
         ? (_editing ? 'Edit Product' : 'Add Product')
         : _batch
         ? (_editing ? 'Edit Harvest Batch' : 'Add Harvest Batch')
+        : _cropReport
+        ? 'Submit Crop Report'
         : (_editing ? 'Edit Farm Profile' : 'Set Up Farm Profile');
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -663,7 +670,8 @@ class _FarmerRecordFormPageState extends ConsumerState<FarmerRecordFormPage> {
               children: [
                 if (_product) ..._productFields(workspace),
                 if (_batch) ..._batchFields(workspace),
-                if (!_product && !_batch) ..._profileFields(),
+                if (_cropReport) ..._cropReportFields(workspace),
+                if (!_product && !_batch && !_cropReport) ..._profileFields(),
                 const SizedBox(height: 22),
                 FilledButton.icon(
                   onPressed: _saving ? null : () => _submit(workspace),
@@ -827,6 +835,51 @@ class _FarmerRecordFormPageState extends ConsumerState<FarmerRecordFormPage> {
       ),
   ];
 
+  List<Widget> _cropReportFields(FarmerWorkspaceData data) => [
+    DropdownButtonFormField<int>(
+      initialValue: _productId,
+      decoration: const InputDecoration(labelText: 'Affected product'),
+      items: [
+        for (final product in data.products)
+          DropdownMenuItem(
+            value: _asInt(product['id']),
+            child: Text('${product['name']}'),
+          ),
+      ],
+      onChanged: (value) => setState(() => _productId = value),
+      validator: (value) => value == null ? 'Select an affected product' : null,
+    ),
+    DropdownButtonFormField<String>(
+      initialValue: 'disease',
+      decoration: const InputDecoration(labelText: 'Report type'),
+      items: const [
+        DropdownMenuItem(value: 'disease', child: Text('Disease')),
+        DropdownMenuItem(value: 'pest', child: Text('Pest')),
+        DropdownMenuItem(value: 'crop_damage', child: Text('Crop damage')),
+        DropdownMenuItem(value: 'flooding', child: Text('Flooding')),
+      ],
+      onChanged: (value) => _selectedReportType = value ?? 'disease',
+    ),
+    _text('description', 'Describe the crop issue', required: true, lines: 4),
+    DropdownButtonFormField<String>(
+      initialValue: 'medium',
+      decoration: const InputDecoration(labelText: 'Severity'),
+      items: const [
+        DropdownMenuItem(value: 'low', child: Text('Low')),
+        DropdownMenuItem(value: 'medium', child: Text('Medium')),
+        DropdownMenuItem(value: 'high', child: Text('High')),
+        DropdownMenuItem(value: 'critical', child: Text('Critical')),
+      ],
+      onChanged: (value) => _selectedSeverity = value ?? 'medium',
+    ),
+    _text('image', 'Image URL (optional)'),
+    _text('latitude', 'Latitude (optional)'),
+    _text('longitude', 'Longitude (optional)'),
+  ];
+
+  String _selectedReportType = 'disease';
+  String _selectedSeverity = 'medium';
+
   Widget _text(
     String key,
     String label, {
@@ -951,6 +1004,18 @@ class _FarmerRecordFormPageState extends ConsumerState<FarmerRecordFormPage> {
         } else {
           await HarvestBatchesService().create(payload);
         }
+      } else if (_cropReport) {
+        await CropReportsService().create({
+          'farmer_id': user.id,
+          'product_id': _productId,
+          'report_type': _selectedReportType,
+          'description': _value('description'),
+          if (_value('image').isNotEmpty) 'image': _value('image'),
+          if (_value('latitude').isNotEmpty) 'latitude': _value('latitude'),
+          if (_value('longitude').isNotEmpty) 'longitude': _value('longitude'),
+          'severity': _selectedSeverity,
+          'status': 'submitted',
+        });
       } else {
         final payload = <String, dynamic>{
           'farm_name': _value('farm_name'),
@@ -1044,6 +1109,118 @@ class FarmerNotificationsPage extends ConsumerWidget {
   }
 }
 
+class FarmerCropReportsPage extends ConsumerStatefulWidget {
+  const FarmerCropReportsPage({super.key});
+  @override
+  ConsumerState<FarmerCropReportsPage> createState() =>
+      _FarmerCropReportsPageState();
+}
+
+class _FarmerCropReportsPageState extends ConsumerState<FarmerCropReportsPage> {
+  late Future<List<Map<String, dynamic>>> _future;
+  @override
+  void initState() {
+    super.initState();
+    _future = _load();
+  }
+
+  Future<List<Map<String, dynamic>>> _load() async {
+    final result = await CropReportsService().list(limit: 500);
+    if (result is! List) {
+      throw const FormatException(
+        'The server returned an invalid report list.',
+      );
+    }
+    final userId = ref.read(authenticationProvider).user!.id;
+    return result
+        .whereType<Map>()
+        .map((row) => Map<String, dynamic>.from(row))
+        .where((row) => _asInt(row['farmer_id']) == userId)
+        .toList();
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: AppColors.background,
+    appBar: AppBar(
+      title: const Text('My Crop Reports'),
+      backgroundColor: AppColors.background,
+      foregroundColor: AppColors.darkGreen,
+    ),
+    floatingActionButton: FloatingActionButton.extended(
+      onPressed: () async {
+        await context.push('/dashboard/farmer/crop-reports/new');
+        if (mounted) setState(() => _future = _load());
+      },
+      backgroundColor: AppColors.primaryGreen,
+      foregroundColor: Colors.white,
+      icon: const Icon(Icons.add),
+      label: const Text('Submit report'),
+    ),
+    body: FutureBuilder<List<Map<String, dynamic>>>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return _loadError(
+            snapshot.error!,
+            () => setState(() => _future = _load()),
+          );
+        }
+        final reports = snapshot.data ?? const [];
+        return RefreshIndicator(
+          onRefresh: () async => setState(() => _future = _load()),
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 90),
+            children: [
+              for (final report in reports)
+                _RecordCard(
+                  icon: Icons.report_outlined,
+                  title: '${report['report_type'] ?? 'Crop report'}',
+                  subtitle: '${report['description'] ?? ''}',
+                  status: '${report['status'] ?? ''}',
+                  onTap: () async {
+                    try {
+                      final detail = await CropReportsService().get(
+                        _asInt(report['id']),
+                      );
+                      if (!context.mounted) return;
+                      await showModalBottomSheet<void>(
+                        context: context,
+                        builder: (context) => SafeArea(
+                          child: Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Text(
+                              detail is Map
+                                  ? '${detail['description'] ?? ''}\nSeverity: ${detail['severity'] ?? ''}\nStatus: ${detail['status'] ?? ''}'
+                                  : 'Report details unavailable.',
+                            ),
+                          ),
+                        ),
+                      );
+                    } catch (error) {
+                      if (context.mounted) {
+                        _toast(context, _errorMessage(error));
+                      }
+                    }
+                  },
+                ),
+              if (reports.isEmpty)
+                const _EmptyList(
+                  icon: Icons.report_outlined,
+                  title: 'No crop reports submitted',
+                ),
+            ],
+          ),
+        );
+      },
+    ),
+  );
+}
+
 class _FarmerProfileView extends ConsumerWidget {
   const _FarmerProfileView({required this.data});
   final FarmerWorkspaceData data;
@@ -1106,6 +1283,33 @@ class _FarmerProfileView extends ConsumerWidget {
           icon: const Icon(Icons.notifications_none),
           label: const Text('Notifications'),
         ),
+        OutlinedButton.icon(
+          onPressed: () => context.push('/dashboard/farmer/crop-reports'),
+          icon: const Icon(Icons.report_outlined),
+          label: const Text('My Crop Reports'),
+        ),
+        if (profile != null)
+          TextButton.icon(
+            onPressed: () async {
+              final confirmed = await _confirmDelete(
+                context,
+                'your farm profile',
+              );
+              if (!confirmed) return;
+              try {
+                await ProfileService().deleteFarmerProfile(
+                  _asInt(profile['id']),
+                );
+                ref.invalidate(farmerWorkspaceProvider);
+                ref.invalidate(farmerDashboardProvider);
+                if (context.mounted) _toast(context, 'Farm profile deleted.');
+              } catch (error) {
+                if (context.mounted) _toast(context, _errorMessage(error));
+              }
+            },
+            icon: const Icon(Icons.delete_outline, color: Colors.red),
+            label: const Text('Delete farm profile'),
+          ),
       ],
     );
   }
