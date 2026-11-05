@@ -13,6 +13,7 @@ import '../../../core/services/product_service.dart';
 import '../../../core/services/profile_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/icon_only_navigation_bar.dart';
+import '../../../core/widgets/image_file_picker_field.dart';
 import '../../../core/services/api_client.dart';
 import '../../authentication/presentation/providers/authentication_provider.dart';
 
@@ -649,6 +650,7 @@ class _AdminRecordFormPageState extends ConsumerState<AdminRecordFormPage> {
   final Map<String, TextEditingController> _controllers = {};
   final Map<String, dynamic> _selected = {};
   bool _saving = false;
+  bool _imageChanged = false;
   late Future<Map<String, List<Map<String, dynamic>>>> _lookups;
   Map<String, dynamic>? _loadedRecord;
 
@@ -661,7 +663,9 @@ class _AdminRecordFormPageState extends ConsumerState<AdminRecordFormPage> {
     _loadedRecord = widget.initial;
     for (final field in _fields) {
       _controllers[field.key] = TextEditingController(
-        text: widget.initial?[field.key]?.toString() ?? '',
+        text: field.key == 'image'
+            ? ''
+            : widget.initial?[field.key]?.toString() ?? '',
       );
       if (field.choices != null && widget.initial?[field.key] != null) {
         _selected[field.key] = widget.initial![field.key];
@@ -686,7 +690,9 @@ class _AdminRecordFormPageState extends ConsumerState<AdminRecordFormPage> {
         setState(() {
           _loadedRecord = Map<String, dynamic>.from(value);
           for (final field in _fields) {
-            _controllers[field.key]?.text = value[field.key]?.toString() ?? '';
+            _controllers[field.key]?.text = field.key == 'image'
+                ? ''
+                : value[field.key]?.toString() ?? '';
             if (field.choices != null) _selected[field.key] = value[field.key];
           }
         });
@@ -795,6 +801,24 @@ class _AdminRecordFormPageState extends ConsumerState<AdminRecordFormPage> {
     _FieldSpec field,
     Map<String, List<Map<String, dynamic>>> lookups,
   ) {
+    if (field.key == 'image') {
+      final savedImage = (_loadedRecord?['image'] ?? widget.initial?['image'])
+          ?.toString();
+      final savedImageIsDataUrl = savedImage?.startsWith('data:image/') == true;
+      return ImageFilePickerField(
+        label: '${field.label}${field.required ? ' *' : ''}',
+        imageData: _imageChanged
+            ? _controllers['image']!.text
+            : savedImageIsDataUrl
+            ? savedImage
+            : null,
+        existingImage: _imageChanged || savedImageIsDataUrl ? null : savedImage,
+        onChanged: (value) => setState(() {
+          _imageChanged = true;
+          _controllers['image']!.text = value ?? '';
+        }),
+      );
+    }
     if (field.choices != null) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 13),
@@ -923,6 +947,14 @@ class _AdminRecordFormPageState extends ConsumerState<AdminRecordFormPage> {
     try {
       final payload = <String, dynamic>{};
       for (final field in _fields) {
+        if (field.key == 'image') {
+          if (_imageChanged) {
+            payload['image'] = _controllers['image']!.text.isEmpty
+                ? null
+                : _controllers['image']!.text;
+          }
+          continue;
+        }
         if (field.choices != null || field.lookup != null) {
           if (_selected[field.key] != null) {
             payload[field.key] = _selected[field.key];
@@ -1011,7 +1043,7 @@ List<_FieldSpec> _resourceFields(
   'categories' => [
     const _FieldSpec('name', 'Name', required: true),
     const _FieldSpec('description', 'Description', multiline: true),
-    const _FieldSpec('image', 'Image URL'),
+    const _FieldSpec('image', 'Image'),
   ],
   'products' => [
     const _FieldSpec(
@@ -1263,7 +1295,7 @@ List<_FieldSpec> _resourceFields(
       required: true,
       multiline: true,
     ),
-    const _FieldSpec('image', 'Image URL'),
+    const _FieldSpec('image', 'Image'),
     const _FieldSpec('latitude', 'Latitude'),
     const _FieldSpec('longitude', 'Longitude'),
     const _FieldSpec(

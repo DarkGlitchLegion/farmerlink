@@ -11,6 +11,7 @@ import '../../../../core/services/product_service.dart';
 import '../../../../core/services/profile_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/icon_only_navigation_bar.dart';
+import '../../../../core/widgets/image_file_picker_field.dart';
 import '../../../authentication/presentation/providers/authentication_provider.dart';
 import '../providers/farmer_dashboard_provider.dart';
 import '../providers/farmer_workspace_provider.dart';
@@ -553,6 +554,7 @@ class _FarmerRecordFormPageState extends ConsumerState<FarmerRecordFormPage> {
   final _form = GlobalKey<FormState>();
   final _values = <String, TextEditingController>{};
   bool _saving = false;
+  bool _cropReportImageChanged = false;
   int? _categoryId;
   int? _productId;
   String _status = 'active';
@@ -865,7 +867,19 @@ class _FarmerRecordFormPageState extends ConsumerState<FarmerRecordFormPage> {
       ],
       onChanged: (value) => _selectedSeverity = value ?? 'medium',
     ),
-    _text('image', 'Image URL (optional)'),
+    ImageFilePickerField(
+      label: 'Image (optional)',
+      imageData: _value('image').startsWith('data:image/')
+          ? _value('image')
+          : null,
+      existingImage: _value('image').startsWith('data:image/')
+          ? null
+          : _value('image'),
+      onChanged: (value) => setState(() {
+        _cropReportImageChanged = true;
+        _values['image']!.text = value ?? '';
+      }),
+    ),
     _text('latitude', 'Latitude (optional)'),
     _text('longitude', 'Longitude (optional)'),
   ];
@@ -1003,7 +1017,8 @@ class _FarmerRecordFormPageState extends ConsumerState<FarmerRecordFormPage> {
           'product_id': _productId,
           'report_type': _selectedReportType,
           'description': _value('description'),
-          if (_value('image').isNotEmpty) 'image': _value('image'),
+          if (_cropReportImageChanged)
+            'image': _value('image').isEmpty ? null : _value('image'),
           if (_value('latitude').isNotEmpty) 'latitude': _value('latitude'),
           if (_value('longitude').isNotEmpty) 'longitude': _value('longitude'),
           'severity': _selectedSeverity,
