@@ -17,6 +17,18 @@ class AdminAnalyticsOverview {
   final CropReportAnalytics cropReports;
   final List<TopDeliveredProduct> topDeliveredProducts;
 
+  Map<String, dynamic> toJson() => {
+    'generated_at': generatedAt?.toIso8601String(),
+    'users': users.toJson(),
+    'catalog': catalog.toJson(),
+    'orders': orders.toJson(),
+    'profiles': profiles.toJson(),
+    'crop_reports': cropReports.toJson(),
+    'top_delivered_products': topDeliveredProducts
+        .map((item) => item.toJson())
+        .toList(),
+  };
+
   factory AdminAnalyticsOverview.fromJson(Map<String, dynamic> json) =>
       AdminAnalyticsOverview(
         generatedAt: DateTime.tryParse('${json['generated_at'] ?? ''}'),
@@ -43,6 +55,12 @@ class UserAnalytics {
   final int? total;
   final Map<String, int> byRole;
   final Map<String, int> byStatus;
+
+  Map<String, dynamic> toJson() => {
+    'total': total,
+    'by_role': byRole,
+    'by_status': byStatus,
+  };
 
   factory UserAnalytics.fromJson(Map<String, dynamic> json) => UserAnalytics(
     total: _integer(json['total']),
@@ -74,6 +92,19 @@ class CatalogAnalytics {
   final int? availableHarvestQuantity;
   final int? marketPricesTotal;
   final int? publishedAdvisories;
+
+  Map<String, dynamic> toJson() => {
+    'categories_total': categoriesTotal,
+    'products_total': productsTotal,
+    'products_by_status': productsByStatus,
+    'active_products': activeProducts,
+    'active_product_quantity': activeProductQuantity,
+    'harvest_batches_total': harvestBatchesTotal,
+    'available_harvest_batches': availableHarvestBatches,
+    'available_harvest_quantity': availableHarvestQuantity,
+    'market_prices_total': marketPricesTotal,
+    'published_advisories': publishedAdvisories,
+  };
 
   factory CatalogAnalytics.fromJson(Map<String, dynamic> json) =>
       CatalogAnalytics(
@@ -112,6 +143,18 @@ class OrderAnalytics {
   final int? paidSalesTotal;
   final double? averagePaidOrderTotal;
 
+  Map<String, dynamic> toJson() => {
+    'total': total,
+    'by_status': byStatus,
+    'by_payment_status': byPaymentStatus,
+    'open_orders': openOrders,
+    'delivered_orders': deliveredOrders,
+    'cancelled_orders': cancelledOrders,
+    'paid_orders': paidOrders,
+    'paid_sales_total': paidSalesTotal,
+    'average_paid_order_total': averagePaidOrderTotal,
+  };
+
   factory OrderAnalytics.fromJson(Map<String, dynamic> json) => OrderAnalytics(
     total: _integer(json['total']),
     byStatus: _integerMap(json['by_status']),
@@ -136,6 +179,14 @@ class ProfileAnalytics {
   final Map<String, int> farmerProfilesByVerification;
   final int? businessBuyerProfilesTotal;
   final Map<String, int> businessBuyerProfilesByVerification;
+
+  Map<String, dynamic> toJson() => {
+    'farmer_profiles_total': farmerProfilesTotal,
+    'farmer_profiles_by_verification': farmerProfilesByVerification,
+    'business_buyer_profiles_total': businessBuyerProfilesTotal,
+    'business_buyer_profiles_by_verification':
+        businessBuyerProfilesByVerification,
+  };
 
   factory ProfileAnalytics.fromJson(Map<String, dynamic> json) =>
       ProfileAnalytics(
@@ -164,6 +215,13 @@ class CropReportAnalytics {
   final Map<String, int> bySeverity;
   final int? criticalReports;
 
+  Map<String, dynamic> toJson() => {
+    'total': total,
+    'by_status': byStatus,
+    'by_severity': bySeverity,
+    'critical_reports': criticalReports,
+  };
+
   factory CropReportAnalytics.fromJson(Map<String, dynamic> json) =>
       CropReportAnalytics(
         total: _integer(json['total']),
@@ -184,6 +242,13 @@ class TopDeliveredProduct {
   final String? productName;
   final int? quantityDelivered;
   final int? deliveredSalesTotal;
+
+  Map<String, dynamic> toJson() => {
+    'product_id': productId,
+    'product_name': productName,
+    'quantity_delivered': quantityDelivered,
+    'delivered_sales_total': deliveredSalesTotal,
+  };
 
   factory TopDeliveredProduct.fromJson(Map<String, dynamic> json) =>
       TopDeliveredProduct(

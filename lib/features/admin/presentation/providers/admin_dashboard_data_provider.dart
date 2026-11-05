@@ -2,62 +2,84 @@ import 'dart:math' as math;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/storage/cache_snapshot_provider.dart';
+import '../../../../core/storage/cache_snapshot_store.dart';
 import '../../../../core/services/crop_report_service.dart';
 import '../../../../core/services/order_service.dart';
 import '../../../../core/services/profile_service.dart';
 import '../../data/models/admin_dashboard_data.dart';
+import '../../../authentication/presentation/providers/authentication_provider.dart';
 import 'admin_analytics_provider.dart';
 
 final adminDashboardDataProvider =
-    FutureProvider.autoDispose<AdminDashboardData>((ref) async {
-      final analytics = await ref.watch(adminAnalyticsProvider.future);
-      final ordersOffset = math.max(0, (analytics.orders.total ?? 0) - 5);
-      final reportsOffset = math.max(0, (analytics.cropReports.total ?? 0) - 5);
-
-      final results = await Future.wait<dynamic>([
-        OrderService().list(offset: ordersOffset, limit: 5),
-        CropReportsService().list(offset: reportsOffset, limit: 5),
-        _pendingProfiles(
-          total: analytics.profiles.farmerProfilesTotal ?? 0,
-          pendingCount:
-              analytics.profiles.farmerProfilesByVerification['pending'] ?? 0,
-          loadPage: (offset, limit) =>
-              ProfileService().listFarmerProfiles(offset: offset, limit: limit),
-        ),
-        _pendingProfiles(
-          total: analytics.profiles.businessBuyerProfilesTotal ?? 0,
-          pendingCount:
-              analytics
-                  .profiles
-                  .businessBuyerProfilesByVerification['pending'] ??
-              0,
-          loadPage: (offset, limit) => ProfileService()
-              .listBusinessBuyerProfiles(offset: offset, limit: limit),
-        ),
-      ]);
-
-      return AdminDashboardData(
-        orders: _rows(results[0])
-            .map(AdminOrderPreview.fromJson)
-            .toList(growable: false),
-        cropReports: _rows(results[1])
-            .map(AdminCropReportPreview.fromJson)
-            .toList(growable: false),
-        pendingProfiles:
-            [
-              ..._rows(results[2]).map(
-                (row) => AdminProfilePreview.fromJson(row, isBusiness: false),
-              ),
-              ..._rows(results[3]).map(
-                (row) => AdminProfilePreview.fromJson(row, isBusiness: true),
-              ),
-            ]..sort(
-              (a, b) => (b.createdAt ?? DateTime(0)).compareTo(
-                a.createdAt ?? DateTime(0),
-              ),
-            ),
+    StreamProvider.autoDispose<AdminDashboardData>((ref) {
+      final auth = ref.watch(authenticationProvider);
+      final user = auth.user;
+      if (!auth.isAuthenticated || user == null || user.role != 'admin') {
+        throw StateError('A signed-in administrator account is required.');
+      }
+      final store = ref.watch(cacheSnapshotStoreProvider);
+      final scope = CacheScope.user(role: user.role, userId: user.id);
+      return cacheFirstRefresh(
+        store: store,
+        scope: scope,
+        key: 'admin_dashboard',
+        decode: (json) =>
+            AdminDashboardData.fromJson(Map<String, dynamic>.from(json as Map)),
+        encode: (data) => data.toJson(),
+        fetch: () => _loadAdminDashboard(ref),
       );
     });
+
+Future<AdminDashboardData> _loadAdminDashboard(Ref ref) async {
+  final analytics = await ref.watch(adminAnalyticsProvider.future);
+  final ordersOffset = math.max(0, (analytics.orders.total ?? 0) - 5);
+  final reportsOffset = math.max(0, (analytics.cropReports.total ?? 0) - 5);
+
+  final results = await Future.wait<dynamic>([
+    OrderService().list(offset: ordersOffset, limit: 5),
+    CropReportsService().list(offset: reportsOffset, limit: 5),
+    _pendingProfiles(
+      total: analytics.profiles.farmerProfilesTotal ?? 0,
+      pendingCount:
+          analytics.profiles.farmerProfilesByVerification['pending'] ?? 0,
+      loadPage: (offset, limit) =>
+          ProfileService().listFarmerProfiles(offset: offset, limit: limit),
+    ),
+    _pendingProfiles(
+      total: analytics.profiles.businessBuyerProfilesTotal ?? 0,
+      pendingCount:
+          analytics.profiles.businessBuyerProfilesByVerification['pending'] ??
+          0,
+      loadPage: (offset, limit) => ProfileService().listBusinessBuyerProfiles(
+        offset: offset,
+        limit: limit,
+      ),
+    ),
+  ]);
+
+  return AdminDashboardData(
+    orders: _rows(results[0])
+        .map(AdminOrderPreview.fromJson)
+        .toList(growable: false),
+    cropReports: _rows(results[1])
+        .map(AdminCropReportPreview.fromJson)
+        .toList(growable: false),
+    pendingProfiles:
+        [
+          ..._rows(
+            results[2],
+          ).map((row) => AdminProfilePreview.fromJson(row, isBusiness: false)),
+          ..._rows(
+            results[3],
+          ).map((row) => AdminProfilePreview.fromJson(row, isBusiness: true)),
+        ]..sort(
+          (a, b) => (b.createdAt ?? DateTime(0)).compareTo(
+            a.createdAt ?? DateTime(0),
+          ),
+        ),
+  );
+}
 
 Future<List<Map<String, dynamic>>> _pendingProfiles({
   required int total,

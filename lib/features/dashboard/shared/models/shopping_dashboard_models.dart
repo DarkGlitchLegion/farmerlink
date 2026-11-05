@@ -16,6 +16,8 @@ class MarketCategory {
     name: json['name'] as String? ?? 'Category',
     image: json['image'] as String?,
   );
+
+  Map<String, dynamic> toJson() => {'id': id, 'name': name, 'image': image};
 }
 
 class MarketProduct {
@@ -61,6 +63,21 @@ class MarketProduct {
     qualityGrade: json['quality_grade'] as String?,
     description: json['description'] as String?,
   );
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'farmer_id': farmerId,
+    'category_id': categoryId,
+    'name': name,
+    'unit': unit,
+    'price_per_unit': pricePerUnit,
+    'available_quantity': availableQuantity,
+    'minimum_order_quantity': minimumOrderQuantity,
+    'status': status,
+    'variety': variety,
+    'quality_grade': qualityGrade,
+    'description': description,
+  };
 }
 
 class ShoppingOrder {
@@ -97,6 +114,18 @@ class ShoppingOrder {
     fulfillmentStatus: json['fulfillment_status'] as String? ?? '',
     createdAt: _dateValue(json['created_at']),
   );
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'order_number': orderNumber,
+    'buyer_id': buyerId,
+    'farmer_id': farmerId,
+    'total_amount': totalAmount,
+    'status': status,
+    'payment_status': paymentStatus,
+    'fulfillment_status': fulfillmentStatus,
+    'created_at': createdAt?.toIso8601String(),
+  };
 }
 
 class AvailableHarvestBatch {
@@ -125,6 +154,15 @@ class AvailableHarvestBatch {
         remainingQuantity: _intValue(json['remaining_quantity']),
         status: json['status'] as String? ?? '',
       );
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'farmer_id': farmerId,
+    'product_id': productId,
+    'batch_code': batchCode,
+    'remaining_quantity': remainingQuantity,
+    'status': status,
+  };
 }
 
 class BusinessProfileData {
@@ -157,6 +195,16 @@ class BusinessProfileData {
         province: json['province'] as String? ?? '',
         verificationStatus: json['verification_status'] as String? ?? 'pending',
       );
+
+  Map<String, dynamic> toJson() => {
+    'business_name': businessName,
+    'business_type': businessType,
+    'business_address': businessAddress,
+    'business_registration_number': registrationNumber,
+    'contact_person': contactPerson,
+    'province': province,
+    'verification_status': verificationStatus,
+  };
 }
 
 class ShoppingNotification {
@@ -182,6 +230,14 @@ class ShoppingNotification {
         isRead: json['is_read'] == 'read',
         createdAt: _dateValue(json['created_at']),
       );
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'title': title,
+    'message': message,
+    'is_read': isRead ? 'read' : 'unread',
+    'created_at': createdAt?.toIso8601String(),
+  };
 }
 
 class ShoppingDashboardData {
@@ -206,6 +262,40 @@ class ShoppingDashboardData {
   final List<ShoppingOrder> orders;
   final List<ShoppingNotification> notifications;
   final List<AvailableHarvestBatch> batches;
+
+  Map<String, dynamic> toJson() => {
+    'business_profile': businessProfile?.toJson(),
+    'products': products.map((item) => item.toJson()).toList(),
+    'categories': categories.map((item) => item.toJson()).toList(),
+    'orders': orders.map((item) => item.toJson()).toList(),
+    'notifications': notifications.map((item) => item.toJson()).toList(),
+    'batches': batches.map((item) => item.toJson()).toList(),
+  };
+
+  factory ShoppingDashboardData.fromJson(
+    Map<String, dynamic> json, {
+    required AuthUser user,
+  }) => ShoppingDashboardData(
+    user: user,
+    businessProfile: json['business_profile'] is Map
+        ? BusinessProfileData.fromJson(
+            Map<String, dynamic>.from(json['business_profile'] as Map),
+          )
+        : null,
+    products: _jsonObjects(json['products'])
+        .map(MarketProduct.fromJson)
+        .toList(),
+    categories: _jsonObjects(json['categories'])
+        .map(MarketCategory.fromJson)
+        .toList(),
+    orders: _jsonObjects(json['orders']).map(ShoppingOrder.fromJson).toList(),
+    notifications: _jsonObjects(json['notifications'])
+        .map(ShoppingNotification.fromJson)
+        .toList(),
+    batches: _jsonObjects(json['batches'])
+        .map(AvailableHarvestBatch.fromJson)
+        .toList(),
+  );
 
   int get activeOrders => orders
       .where(
@@ -247,3 +337,7 @@ class ShoppingDashboardData {
       )
       .toList(growable: false);
 }
+
+List<Map<String, dynamic>> _jsonObjects(dynamic value) => value is List
+    ? value.whereType<Map>().map(Map<String, dynamic>.from).toList()
+    : const [];

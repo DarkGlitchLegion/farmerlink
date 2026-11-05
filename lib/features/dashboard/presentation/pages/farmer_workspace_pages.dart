@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/services/api_client.dart';
+import '../../../../core/storage/dashboard_cache_invalidation.dart';
 import '../../../../core/services/crop_report_service.dart';
 import '../../../../core/services/harvest_batches_service.dart';
 import '../../../../core/services/notification_service.dart';
@@ -276,6 +277,14 @@ class _FarmerWorkspacePageState extends ConsumerState<FarmerWorkspacePage> {
       if (accepted) {
         try {
           await ProductService().delete(_asInt(product['id']));
+          final user = ref.read(authenticationProvider).user;
+          if (user != null) {
+            await invalidateCachesForFarmerMutation(
+              ref,
+              user,
+              resource: 'product',
+            );
+          }
           ref.invalidate(farmerWorkspaceProvider);
           ref.invalidate(farmerDashboardProvider);
           if (context.mounted) _toast(context, 'Product deleted.');
@@ -310,6 +319,14 @@ class _FarmerWorkspacePageState extends ConsumerState<FarmerWorkspacePage> {
       if (accepted) {
         try {
           await HarvestBatchesService().delete(_asInt(batch['id']));
+          final user = ref.read(authenticationProvider).user;
+          if (user != null) {
+            await invalidateCachesForFarmerMutation(
+              ref,
+              user,
+              resource: 'batch',
+            );
+          }
           ref.invalidate(farmerWorkspaceProvider);
           ref.invalidate(farmerDashboardProvider);
           if (context.mounted) _toast(context, 'Harvest batch deleted.');
@@ -377,6 +394,14 @@ class _FarmerWorkspacePageState extends ConsumerState<FarmerWorkspacePage> {
                       onPressed: () async {
                         try {
                           await service.update(id, {'status': status});
+                          final user = ref.read(authenticationProvider).user;
+                          if (user != null) {
+                            await invalidateCachesForFarmerMutation(
+                              ref,
+                              user,
+                              resource: 'order',
+                            );
+                          }
                           ref.invalidate(farmerWorkspaceProvider);
                           if (context.mounted) Navigator.pop(context);
                           if (context.mounted) {
@@ -1041,6 +1066,17 @@ class _FarmerRecordFormPageState extends ConsumerState<FarmerRecordFormPage> {
           await profiles.createFarmerProfile(payload);
         }
       }
+      await invalidateCachesForFarmerMutation(
+        ref,
+        user,
+        resource: _product
+            ? 'product'
+            : _batch
+            ? 'batch'
+            : _cropReport
+            ? 'report'
+            : 'profile',
+      );
       ref.invalidate(farmerWorkspaceProvider);
       ref.invalidate(farmerDashboardProvider);
       if (mounted) {
@@ -1094,6 +1130,10 @@ class FarmerNotificationsPage extends ConsumerWidget {
                         await NotificationService().update(id, {
                           'is_read': 'read',
                         });
+                      }
+                      final user = ref.read(authenticationProvider).user;
+                      if (user != null) {
+                        await invalidateUserDashboardCache(ref, user);
                       }
                       ref.invalidate(farmerWorkspaceProvider);
                     } catch (error) {

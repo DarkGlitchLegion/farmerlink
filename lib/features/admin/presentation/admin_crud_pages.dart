@@ -15,7 +15,9 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/image_file_picker_field.dart';
 import '../../../core/widgets/base64_image_preview.dart';
 import '../../../core/services/api_client.dart';
+import '../../../core/storage/dashboard_cache_invalidation.dart';
 import 'widgets/admin_navigation_bar.dart';
+import '../../authentication/presentation/providers/authentication_provider.dart';
 
 class AdminModule {
   const AdminModule(this.key, this.title, this.icon, {this.create = true});
@@ -116,7 +118,10 @@ class _AdminResourcePageState extends ConsumerState<AdminResourcePage> {
           ? FloatingActionButton.extended(
               onPressed: () async {
                 await context.push('/dashboard/admin/${widget.resource}/new');
-                if (mounted) _reload();
+                if (mounted) {
+                  await _invalidateAdminCache();
+                  _reload();
+                }
               },
               backgroundColor: AppColors.primaryGreen,
               foregroundColor: Colors.white,
@@ -194,7 +199,10 @@ class _AdminResourcePageState extends ConsumerState<AdminResourcePage> {
                               await context.push(
                                 '/dashboard/admin/${widget.resource}/${row['id']}',
                               );
-                              if (mounted) _reload();
+                              if (mounted) {
+                                await _invalidateAdminCache();
+                                _reload();
+                              }
                             },
                             leading: Icon(
                               module.icon,
@@ -266,6 +274,11 @@ class _AdminResourcePageState extends ConsumerState<AdminResourcePage> {
         ],
       ),
     );
+  }
+
+  Future<void> _invalidateAdminCache() async {
+    final user = ref.read(authenticationProvider).user;
+    if (user != null) await invalidateUserDashboardCache(ref, user);
   }
 }
 
@@ -444,6 +457,7 @@ class _AdminRecordDetailPageState extends ConsumerState<AdminRecordDetailPage> {
       extra: record,
     );
     if (mounted) {
+      await invalidateCachesForAdminResource(ref, widget.resource);
       setState(() => _future = _adminGet(widget.resource, widget.id));
     }
   }
@@ -476,6 +490,8 @@ class _AdminRecordDetailPageState extends ConsumerState<AdminRecordDetailPage> {
     if (!yes) return;
     try {
       await _adminDelete(widget.resource, widget.id);
+      final user = ref.read(authenticationProvider).user;
+      if (user != null) await invalidateUserDashboardCache(ref, user);
       if (context.mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(const SnackBar(content: Text('Record deleted.')));
@@ -831,6 +847,7 @@ class _AdminRecordFormPageState extends ConsumerState<AdminRecordFormPage> {
       } else {
         await _adminCreate(widget.resource, payload);
       }
+      await invalidateCachesForAdminResource(ref, widget.resource);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

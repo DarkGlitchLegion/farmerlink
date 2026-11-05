@@ -94,11 +94,13 @@ void main() {
             ),
           ),
           farmerDashboardProvider.overrideWith(
-            (ref) async => FarmerDashboardData(
-              user: _farmer,
-              availableBatches: const [],
-              productsById: const {},
-              orders: const [],
+            (ref) => Stream.value(
+              FarmerDashboardData(
+                user: _farmer,
+                availableBatches: const [],
+                productsById: const {},
+                orders: const [],
+              ),
             ),
           ),
         ],

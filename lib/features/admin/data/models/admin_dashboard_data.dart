@@ -8,6 +8,30 @@ class AdminDashboardData {
   final List<AdminOrderPreview> orders;
   final List<AdminProfilePreview> pendingProfiles;
   final List<AdminCropReportPreview> cropReports;
+
+  Map<String, dynamic> toJson() => {
+    'orders': orders.map((item) => item.toJson()).toList(),
+    'pending_profiles': pendingProfiles.map((item) => item.toJson()).toList(),
+    'crop_reports': cropReports.map((item) => item.toJson()).toList(),
+  };
+
+  factory AdminDashboardData.fromJson(Map<String, dynamic> json) =>
+      AdminDashboardData(
+        orders: _objects(json['orders'])
+            .map(AdminOrderPreview.fromJson)
+            .toList(growable: false),
+        pendingProfiles: _objects(json['pending_profiles'])
+            .map(
+              (item) => AdminProfilePreview.fromJson(
+                item,
+                isBusiness: item['is_business'] == true,
+              ),
+            )
+            .toList(growable: false),
+        cropReports: _objects(json['crop_reports'])
+            .map(AdminCropReportPreview.fromJson)
+            .toList(growable: false),
+      );
 }
 
 class AdminOrderPreview {
@@ -26,6 +50,15 @@ class AdminOrderPreview {
   final int totalAmount;
   final String status;
   final DateTime? createdAt;
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'order_number': orderNumber,
+    'buyer_id': buyerId,
+    'total_amount': totalAmount,
+    'status': status,
+    'created_at': createdAt?.toIso8601String(),
+  };
 
   factory AdminOrderPreview.fromJson(Map<String, dynamic> json) =>
       AdminOrderPreview(
@@ -53,13 +86,22 @@ class AdminProfilePreview {
   final bool isBusiness;
   final DateTime? createdAt;
 
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'user_id': userId,
+    'name': name,
+    'is_business': isBusiness,
+    'created_at': createdAt?.toIso8601String(),
+  };
+
   factory AdminProfilePreview.fromJson(
     Map<String, dynamic> json, {
     required bool isBusiness,
   }) => AdminProfilePreview(
     id: _int(json['id']),
     userId: _int(json['user_id']),
-    name: '${json[isBusiness ? 'business_name' : 'farm_name'] ?? 'Profile'}',
+    name:
+        '${json['name'] ?? json[isBusiness ? 'business_name' : 'farm_name'] ?? 'Profile'}',
     isBusiness: isBusiness,
     createdAt: DateTime.tryParse('${json['created_at'] ?? ''}'),
   );
@@ -84,6 +126,16 @@ class AdminCropReportPreview {
   final String status;
   final DateTime? createdAt;
 
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'report_type': reportType,
+    'description': description,
+    'farmer_id': farmerId,
+    'severity': severity,
+    'status': status,
+    'created_at': createdAt?.toIso8601String(),
+  };
+
   factory AdminCropReportPreview.fromJson(Map<String, dynamic> json) =>
       AdminCropReportPreview(
         id: _int(json['id']),
@@ -98,3 +150,7 @@ class AdminCropReportPreview {
 
 int _int(dynamic value) =>
     value is num ? value.toInt() : int.tryParse('$value') ?? 0;
+
+List<Map<String, dynamic>> _objects(dynamic value) => value is List
+    ? value.whereType<Map>().map(Map<String, dynamic>.from).toList()
+    : const [];

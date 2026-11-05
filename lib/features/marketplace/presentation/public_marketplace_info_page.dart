@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/storage/cache_snapshot_store.dart';
 import '../../../core/services/advisory_service.dart';
 import '../../../core/services/category_service.dart';
 import '../../../core/services/harvest_batches_service.dart';
@@ -22,6 +23,8 @@ class _PublicMarketplaceInfoPageState extends State<PublicMarketplaceInfoPage> {
   ];
   int _selected = 0;
   String _query = '';
+  List<Map<String, dynamic>>? _cachedRows;
+  final _cache = CacheSnapshotStore();
   late Future<List<Map<String, dynamic>>> _future;
 
   @override
@@ -30,26 +33,43 @@ class _PublicMarketplaceInfoPageState extends State<PublicMarketplaceInfoPage> {
     _future = _load();
   }
 
-  Future<List<Map<String, dynamic>>> _load() async {
-    final value = switch (_selected) {
-      0 => await CategoryService().list(limit: 100),
-      1 => await MarketPricesService().list(limit: 100),
-      2 => await HarvestBatchesService().list(limit: 100),
-      _ => await AdvisoryService().list(limit: 100),
-    };
-    if (value is! List) {
-      throw const FormatException('The API returned an invalid list.');
+  Future<List<Map<String, dynamic>>> _load({int? section}) async {
+    final selected = section ?? _selected;
+    final key = 'public_marketplace_$selected';
+    final cached = await _cache.readJson(CacheScope.public, key);
+    final cachedRows = cached is List
+        ? cached.whereType<Map>().map(Map<String, dynamic>.from).toList()
+        : null;
+    if (cachedRows != null && mounted && selected == _selected) {
+      setState(() => _cachedRows = cachedRows);
     }
-    return value
-        .whereType<Map>()
-        .map((row) => Map<String, dynamic>.from(row))
-        .toList();
+    try {
+      final value = switch (selected) {
+        0 => await CategoryService().list(limit: 100),
+        1 => await MarketPricesService().list(limit: 100),
+        2 => await HarvestBatchesService().list(limit: 100),
+        _ => await AdvisoryService().list(limit: 100),
+      };
+      if (value is! List) {
+        throw const FormatException('The API returned an invalid list.');
+      }
+      final rows = value
+          .whereType<Map>()
+          .map((row) => Map<String, dynamic>.from(row))
+          .toList();
+      await _cache.writeJson(CacheScope.public, key, rows);
+      return rows;
+    } catch (_) {
+      if (cachedRows != null) return cachedRows;
+      rethrow;
+    }
   }
 
   void _select(int index) => setState(() {
     _selected = index;
     _query = '';
-    _future = _load();
+    _cachedRows = null;
+    _future = _load(section: index);
   });
 
   @override
@@ -97,16 +117,18 @@ class _PublicMarketplaceInfoPageState extends State<PublicMarketplaceInfoPage> {
           child: FutureBuilder<List<Map<String, dynamic>>>(
             future: _future,
             builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
+              final availableRows = snapshot.data ?? _cachedRows;
+              if (availableRows == null &&
+                  snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
-              if (snapshot.hasError) {
+              if (availableRows == null && snapshot.hasError) {
                 return _PublicInfoError(
                   message: _message(snapshot.error!),
                   onRetry: () => setState(() => _future = _load()),
                 );
               }
-              final records = (snapshot.data ?? const [])
+              final records = (availableRows ?? const <Map<String, dynamic>>[])
                   .where(
                     (row) => row.values.any(
                       (value) =>

@@ -1,0 +1,10 @@
+import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
+
+Future<void> configureCacheDatabaseFactory() async {
+  databaseFactory = databaseFactoryFfiWeb;
+}
+
+DatabaseFactory get cacheDatabaseFactory => databaseFactory;
+
+bool get cacheUsesWebStorage => true;

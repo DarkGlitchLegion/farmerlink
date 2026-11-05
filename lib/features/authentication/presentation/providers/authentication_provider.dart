@@ -8,6 +8,8 @@ import '../../../../core/services/api_client.dart';
 import '../../../../core/services/authentication_service.dart';
 import '../../../../core/services/profile_service.dart';
 import '../../../../core/storage/token_storage.dart';
+import '../../../../core/storage/cache_snapshot_provider.dart';
+import '../../../../core/storage/cache_snapshot_store.dart';
 import '../../data/datasources/authentication_remote_datasource.dart';
 import '../../data/repositories/authentication_repository_impl.dart';
 import '../../domain/entities/user.dart';
@@ -186,10 +188,16 @@ class AuthenticationController extends Notifier<AuthenticationState> {
   }
 
   Future<void> logout() async {
+    final user = state.user;
     state = const AuthenticationState(status: AuthenticationStatus.loading);
     try {
       await _repository.logout();
     } finally {
+      if (user != null) {
+        await ref
+            .read(cacheSnapshotStoreProvider)
+            .clearScope(CacheScope.user(role: user.role, userId: user.id));
+      }
       state = const AuthenticationState(
         status: AuthenticationStatus.unauthenticated,
       );
@@ -198,9 +206,15 @@ class AuthenticationController extends Notifier<AuthenticationState> {
 
   Future<void> _handleUnauthorized() async {
     if (state.isAuthenticated || state.status == AuthenticationStatus.loading) {
+      final user = state.user;
       try {
         await _repository.logout();
       } finally {
+        if (user != null) {
+          await ref
+              .read(cacheSnapshotStoreProvider)
+              .clearScope(CacheScope.user(role: user.role, userId: user.id));
+        }
         state = const AuthenticationState(
           status: AuthenticationStatus.unauthenticated,
         );

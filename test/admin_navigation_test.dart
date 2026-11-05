@@ -44,12 +44,16 @@ void main() {
       ProviderScope(
         overrides: [
           authenticationProvider.overrideWith(_SignedInAdmin.new),
-          adminAnalyticsProvider.overrideWith((ref) async => _analytics),
+          adminAnalyticsProvider.overrideWith(
+            (ref) => Stream.value(_analytics),
+          ),
           adminDashboardDataProvider.overrideWith(
-            (ref) async => const AdminDashboardData(
-              orders: [],
-              pendingProfiles: [],
-              cropReports: [],
+            (ref) => Stream.value(
+              const AdminDashboardData(
+                orders: [],
+                pendingProfiles: [],
+                cropReports: [],
+              ),
             ),
           ),
         ],

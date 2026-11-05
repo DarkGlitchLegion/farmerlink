@@ -9,6 +9,7 @@ import '../../../../../core/services/order_service.dart';
 import '../../../../../core/services/profile_service.dart';
 import '../../../../../core/services/product_service.dart';
 import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/storage/dashboard_cache_invalidation.dart';
 import '../../../../../core/widgets/icon_only_navigation_bar.dart';
 import '../../../../authentication/domain/entities/user.dart';
 import '../../../../authentication/presentation/providers/authentication_provider.dart';
@@ -61,6 +62,8 @@ class _BusinessBuyerDashboardPageState
               await ref
                   .read(shoppingDashboardRepositoryProvider)
                   .markNotificationRead(id);
+              final user = ref.read(authenticationProvider).user;
+              if (user != null) await invalidateUserDashboardCache(ref, user);
               ref.invalidate(shoppingDashboardProvider(_role));
             },
           ),
@@ -108,6 +111,15 @@ class _BusinessBuyerDashboardPageState
       ),
     );
     if (order == null || !mounted) return;
+    final user = ref.read(authenticationProvider).user;
+    if (user != null) {
+      await invalidateShopperOrderMutation(
+        ref,
+        buyer: user,
+        farmerId: product.farmerId,
+      );
+    }
+    if (!mounted) return;
     ref.invalidate(shoppingDashboardProvider(_role));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -733,6 +745,14 @@ class _BusinessBuyerDashboardPageState
     if (!confirmed) return;
     try {
       await OrderService().update(order.id, {'status': 'cancelled'});
+      final user = ref.read(authenticationProvider).user;
+      if (user != null) {
+        await invalidateShopperOrderMutation(
+          ref,
+          buyer: user,
+          farmerId: order.farmerId,
+        );
+      }
       await _refresh();
       if (mounted) {
         ScaffoldMessenger.of(context)

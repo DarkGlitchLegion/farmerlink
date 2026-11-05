@@ -29,6 +29,14 @@ class FarmerProfileData {
         province: json['province'] as String? ?? '',
         verificationStatus: json['verification_status'] as String? ?? 'pending',
       );
+
+  Map<String, dynamic> toJson() => {
+    'farm_name': farmName,
+    'farm_address': farmAddress,
+    'municipality': municipality,
+    'province': province,
+    'verification_status': verificationStatus,
+  };
 }
 
 class HarvestBatchData {
@@ -69,6 +77,19 @@ class HarvestBatchData {
         harvestLocation: json['harvest_location'] as String? ?? '',
         status: json['status'] as String? ?? 'available',
       );
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'batch_code': batchCode,
+    'farmer_id': farmerId,
+    'product_id': productId,
+    'harvest_date': harvestDate?.toIso8601String(),
+    'available_date': availableDate?.toIso8601String(),
+    'expected_expiration_date': expirationDate?.toIso8601String(),
+    'remaining_quantity': remainingQuantity,
+    'harvest_location': harvestLocation,
+    'status': status,
+  };
 }
 
 class FarmerProductData {
@@ -94,6 +115,14 @@ class FarmerProductData {
         unit: json['unit'] as String? ?? 'unit',
         pricePerUnit: _intValue(json['price_per_unit']),
       );
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'farmer_id': farmerId,
+    'name': name,
+    'unit': unit,
+    'price_per_unit': pricePerUnit,
+  };
 }
 
 class FarmerOrderData {
@@ -119,6 +148,14 @@ class FarmerOrderData {
         paymentStatus: json['payment_status'] as String? ?? '',
         createdAt: _dateValue(json['created_at']),
       );
+
+  Map<String, dynamic> toJson() => {
+    'farmer_id': farmerId,
+    'total_amount': totalAmount,
+    'status': status,
+    'payment_status': paymentStatus,
+    'created_at': createdAt?.toIso8601String(),
+  };
 }
 
 class FarmerDashboardData {
@@ -135,6 +172,51 @@ class FarmerDashboardData {
   final List<HarvestBatchData> availableBatches;
   final Map<int, FarmerProductData> productsById;
   final List<FarmerOrderData> orders;
+
+  Map<String, dynamic> toJson() => {
+    'profile': profile?.toJson(),
+    'available_batches': availableBatches
+        .map((batch) => batch.toJson())
+        .toList(),
+    'products': productsById.values.map((product) => product.toJson()).toList(),
+    'orders': orders.map((order) => order.toJson()).toList(),
+  };
+
+  factory FarmerDashboardData.fromJson(
+    Map<String, dynamic> json, {
+    required AuthUser user,
+  }) {
+    final profile = json['profile'];
+    final products = (json['products'] as List? ?? [])
+        .whereType<Map>()
+        .map(
+          (item) => FarmerProductData.fromJson(Map<String, dynamic>.from(item)),
+        )
+        .fold<Map<int, FarmerProductData>>({}, (map, product) {
+          map[product.id] = product;
+          return map;
+        });
+    return FarmerDashboardData(
+      user: user,
+      profile: profile is Map
+          ? FarmerProfileData.fromJson(Map<String, dynamic>.from(profile))
+          : null,
+      availableBatches: (json['available_batches'] as List? ?? [])
+          .whereType<Map>()
+          .map(
+            (item) =>
+                HarvestBatchData.fromJson(Map<String, dynamic>.from(item)),
+          )
+          .toList(growable: false),
+      productsById: Map.unmodifiable(products),
+      orders: (json['orders'] as List? ?? [])
+          .whereType<Map>()
+          .map(
+            (item) => FarmerOrderData.fromJson(Map<String, dynamic>.from(item)),
+          )
+          .toList(growable: false),
+    );
+  }
 
   int monthlyPaidRevenue({DateTime? now}) {
     final current = now ?? DateTime.now();
