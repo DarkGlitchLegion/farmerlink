@@ -12,6 +12,7 @@ import '../../../../core/services/profile_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/icon_only_navigation_bar.dart';
 import '../../../../core/widgets/image_file_picker_field.dart';
+import '../../../../core/widgets/base64_image_preview.dart';
 import '../../../authentication/presentation/providers/authentication_provider.dart';
 import '../providers/farmer_dashboard_provider.dart';
 import '../providers/farmer_workspace_provider.dart';
@@ -581,7 +582,7 @@ class _FarmerRecordFormPageState extends ConsumerState<FarmerRecordFormPage> {
             'quality_grade',
           ]
         : _batch
-        ? ['batch_code', 'quantity', 'remaining_quantity', 'harvest_location']
+        ? ['quantity', 'remaining_quantity', 'harvest_location']
         : _cropReport
         ? ['description', 'image', 'latitude', 'longitude']
         : [
@@ -768,7 +769,6 @@ class _FarmerRecordFormPageState extends ConsumerState<FarmerRecordFormPage> {
       validator: (value) =>
           value == null ? 'Select one of your products' : null,
     ),
-    _text('batch_code', 'Batch code', required: true),
     _text(
       'quantity',
       'Harvest quantity',
@@ -990,7 +990,6 @@ class _FarmerRecordFormPageState extends ConsumerState<FarmerRecordFormPage> {
         final payload = <String, dynamic>{
           'farmer_id': user.id,
           'product_id': _productId,
-          'batch_code': _value('batch_code'),
           'harvest_date': _harvestDate!.toIso8601String(),
           'available_date': _availableDate!.toIso8601String(),
           'quantity': int.parse(_value('quantity')),
@@ -1199,12 +1198,32 @@ class _FarmerCropReportsPageState extends ConsumerState<FarmerCropReportsPage> {
                       await showModalBottomSheet<void>(
                         context: context,
                         builder: (context) => SafeArea(
-                          child: Padding(
-                            padding: const EdgeInsets.all(20),
-                            child: Text(
-                              detail is Map
-                                  ? '${detail['description'] ?? ''}\nSeverity: ${detail['severity'] ?? ''}\nStatus: ${detail['status'] ?? ''}'
-                                  : 'Report details unavailable.',
+                          child: SingleChildScrollView(
+                            child: Padding(
+                              padding: const EdgeInsets.all(20),
+                              child: detail is Map
+                                  ? Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text('${detail['description'] ?? ''}'),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Severity: ${detail['severity'] ?? ''}',
+                                        ),
+                                        Text(
+                                          'Status: ${detail['status'] ?? ''}',
+                                        ),
+                                        if (detail['image'] != null &&
+                                            '${detail['image']}'.isNotEmpty)
+                                          Base64ImagePreview(
+                                            label: 'Attached image',
+                                            data: '${detail['image']}',
+                                          ),
+                                      ],
+                                    )
+                                  : const Text('Report details unavailable.'),
                             ),
                           ),
                         ),

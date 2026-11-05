@@ -14,6 +14,7 @@ import '../../../core/services/profile_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/icon_only_navigation_bar.dart';
 import '../../../core/widgets/image_file_picker_field.dart';
+import '../../../core/widgets/base64_image_preview.dart';
 import '../../../core/services/api_client.dart';
 import '../../authentication/presentation/providers/authentication_provider.dart';
 
@@ -507,12 +508,18 @@ class _AdminRecordDetailPageState extends ConsumerState<AdminRecordDetailPage> {
                       const Divider(height: 24),
                       for (final entry in record.entries)
                         if (!{'avatar'}.contains(entry.key))
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 5),
-                            child: Text(
-                              '${_humanize(entry.key)}: ${entry.value ?? '—'}',
+                          if (entry.key == 'image' && entry.value != null)
+                            Base64ImagePreview(
+                              label: _humanize(entry.key),
+                              data: entry.value.toString(),
+                            )
+                          else
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 5),
+                              child: Text(
+                                '${_humanize(entry.key)}: ${entry.value ?? '—'}',
+                              ),
                             ),
-                          ),
                     ],
                   ),
                 ),
@@ -1103,7 +1110,6 @@ List<_FieldSpec> _resourceFields(
       required: true,
       lookup: 'products',
     ),
-    const _FieldSpec('batch_code', 'Batch code', required: true),
     const _FieldSpec(
       'harvest_date',
       'Harvest date (ISO)',

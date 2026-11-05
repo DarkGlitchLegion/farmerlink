@@ -64,7 +64,7 @@ void main() {
         UserRole.farmer,
         'POST',
         '/harvest-batches',
-        body: {'batch_code': 'A-1', 'farmer_id': 12, 'product_id': 5},
+        body: {'farmer_id': 12, 'product_id': 5},
       );
       allow(
         UserRole.farmer,
