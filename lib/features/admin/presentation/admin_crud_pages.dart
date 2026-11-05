@@ -12,6 +12,7 @@ import '../../../core/services/order_service.dart';
 import '../../../core/services/product_service.dart';
 import '../../../core/services/profile_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/icon_only_navigation_bar.dart';
 import '../../../core/services/api_client.dart';
 import '../../authentication/presentation/providers/authentication_provider.dart';
 
@@ -45,6 +46,42 @@ const adminModules = <AdminModule>[
   AdminModule('orders', 'Orders', Icons.shopping_bag_outlined, create: false),
 ];
 
+Widget _adminBottomNavigationBar(BuildContext context, int selectedIndex) =>
+    IconOnlyNavigationBar(
+      selectedIndex: selectedIndex,
+      onSelected: (index) => context.go(
+        const [
+          '/dashboard/admin',
+          '/dashboard/admin/users',
+          '/dashboard/admin/products',
+          '/dashboard/admin/crop-reports',
+          '/dashboard/admin/profile',
+        ][index],
+      ),
+      items: const [
+        IconOnlyNavigationItem(
+          icon: Icons.dashboard_outlined,
+          activeIcon: Icons.dashboard,
+        ),
+        IconOnlyNavigationItem(
+          icon: Icons.people_outline,
+          activeIcon: Icons.people,
+        ),
+        IconOnlyNavigationItem(
+          icon: Icons.inventory_2_outlined,
+          activeIcon: Icons.inventory_2,
+        ),
+        IconOnlyNavigationItem(
+          icon: Icons.assessment_outlined,
+          activeIcon: Icons.assessment,
+        ),
+        IconOnlyNavigationItem(
+          icon: Icons.person_outline,
+          activeIcon: Icons.person,
+        ),
+      ],
+    );
+
 class AdminDashboardPage extends ConsumerWidget {
   const AdminDashboardPage({super.key});
   @override
@@ -52,6 +89,7 @@ class AdminDashboardPage extends ConsumerWidget {
     final user = ref.watch(authenticationProvider).user;
     return Scaffold(
       backgroundColor: AppColors.background,
+      bottomNavigationBar: _adminBottomNavigationBar(context, 0),
       appBar: AppBar(
         title: const Text('Administration'),
         backgroundColor: AppColors.background,
@@ -101,6 +139,62 @@ class AdminDashboardPage extends ConsumerWidget {
                 onTap: () => context.push('/dashboard/admin/${module.key}'),
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+class AdminProfilePage extends ConsumerWidget {
+  const AdminProfilePage({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(authenticationProvider).user;
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text('Account'),
+        backgroundColor: AppColors.background,
+      ),
+      bottomNavigationBar: _adminBottomNavigationBar(context, 4),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          CircleAvatar(
+            radius: 36,
+            child: Text(
+              user?.firstName.isNotEmpty == true
+                  ? user!.firstName[0].toUpperCase()
+                  : 'A',
+            ),
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: Text(
+              '${user?.firstName ?? ''} ${user?.lastName ?? ''}'.trim(),
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+          ),
+          if (user?.email != null)
+            ListTile(
+              leading: const Icon(Icons.email_outlined),
+              title: Text(user!.email),
+            ),
+          if (user?.role != null)
+            ListTile(
+              leading: const Icon(Icons.admin_panel_settings_outlined),
+              title: Text(user!.role),
+            ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () async {
+              await ref.read(authenticationProvider.notifier).logout();
+              if (context.mounted) context.go('/login');
+            },
+            icon: const Icon(Icons.logout),
+            label: const Text('Sign out'),
+          ),
         ],
       ),
     );
@@ -159,6 +253,15 @@ class _AdminResourcePageState extends ConsumerState<AdminResourcePage> {
     }
     return Scaffold(
       backgroundColor: AppColors.background,
+      bottomNavigationBar: _adminBottomNavigationBar(
+        context,
+        switch (widget.resource) {
+          'users' => 1,
+          'products' => 2,
+          'crop-reports' => 3,
+          _ => 0,
+        },
+      ),
       appBar: AppBar(
         title: Text(module.title),
         backgroundColor: AppColors.background,
@@ -350,6 +453,15 @@ class _AdminRecordDetailPageState extends ConsumerState<AdminRecordDetailPage> {
     }
     return Scaffold(
       backgroundColor: AppColors.background,
+      bottomNavigationBar: _adminBottomNavigationBar(
+        context,
+        switch (widget.resource) {
+          'users' => 1,
+          'products' => 2,
+          'crop-reports' => 3,
+          _ => 0,
+        },
+      ),
       appBar: AppBar(
         title: Text('${_singular(module.title)} details'),
         backgroundColor: AppColors.background,
@@ -621,6 +733,15 @@ class _AdminRecordFormPageState extends ConsumerState<AdminRecordFormPage> {
     }
     return Scaffold(
       backgroundColor: AppColors.background,
+      bottomNavigationBar: _adminBottomNavigationBar(
+        context,
+        switch (widget.resource) {
+          'users' => 1,
+          'products' => 2,
+          'crop-reports' => 3,
+          _ => 0,
+        },
+      ),
       appBar: AppBar(
         title: Text(
           '${_editing ? 'Edit' : 'Create'} ${_singular(module.title)}',

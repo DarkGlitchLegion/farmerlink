@@ -9,6 +9,7 @@ import '../../../../../core/services/order_service.dart';
 import '../../../../../core/services/profile_service.dart';
 import '../../../../../core/services/product_service.dart';
 import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/widgets/icon_only_navigation_bar.dart';
 import '../../../../authentication/domain/entities/user.dart';
 import '../../../../authentication/presentation/providers/authentication_provider.dart';
 import '../../../presentation/widgets/dashboard_stat_card.dart';
@@ -169,34 +170,29 @@ class _BusinessBuyerDashboardPageState
             children: _tabContent(data),
           ),
         ),
-        bottomNavigationBar: NavigationBar(
+        bottomNavigationBar: IconOnlyNavigationBar(
           selectedIndex: _tab,
-          onDestinationSelected: (index) => setState(() => _tab = index),
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.dashboard_outlined),
-              selectedIcon: Icon(Icons.dashboard_rounded),
-              label: 'Dashboard',
+          onSelected: (index) => setState(() => _tab = index),
+          items: const [
+            IconOnlyNavigationItem(
+              icon: Icons.dashboard_outlined,
+              activeIcon: Icons.dashboard_rounded,
             ),
-            NavigationDestination(
-              icon: Icon(Icons.inventory_2_outlined),
-              selectedIcon: Icon(Icons.inventory_2_rounded),
-              label: 'Wholesale',
+            IconOnlyNavigationItem(
+              icon: Icons.storefront_outlined,
+              activeIcon: Icons.storefront_rounded,
             ),
-            NavigationDestination(
-              icon: Icon(Icons.agriculture_outlined),
-              selectedIcon: Icon(Icons.agriculture_rounded),
-              label: 'Suppliers',
+            IconOnlyNavigationItem(
+              icon: Icons.people_outline,
+              activeIcon: Icons.people_rounded,
             ),
-            NavigationDestination(
-              icon: Icon(Icons.receipt_long_outlined),
-              selectedIcon: Icon(Icons.receipt_long_rounded),
-              label: 'Orders',
+            IconOnlyNavigationItem(
+              icon: Icons.receipt_long_outlined,
+              activeIcon: Icons.receipt_long_rounded,
             ),
-            NavigationDestination(
-              icon: Icon(Icons.business_outlined),
-              selectedIcon: Icon(Icons.business_rounded),
-              label: 'Profile',
+            IconOnlyNavigationItem(
+              icon: Icons.person_outline_rounded,
+              activeIcon: Icons.person_rounded,
             ),
           ],
         ),

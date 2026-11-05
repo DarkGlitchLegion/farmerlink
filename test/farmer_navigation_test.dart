@@ -108,18 +108,18 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(NavigationBar), findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(NavigationBar), matching: find.text('')),
+      findsNWidgets(5),
+    );
     expect(find.text('Your farm at a glance'), findsOneWidget);
-    for (final destination in [
-      'My Products',
-      'Harvest Batches',
-      'Orders',
-      'Profile',
-      'Home',
-    ]) {
-      await tester.tap(find.text(destination).last);
+    for (var index = 1; index < 5; index++) {
+      await tester.tap(find.byType(NavigationDestination).at(index));
       await tester.pumpAndSettle();
-      if (destination != 'Home') expect(find.text(destination), findsWidgets);
+      expect(find.byType(NavigationBar), findsOneWidget);
     }
+    await tester.tap(find.byType(NavigationDestination).first);
+    await tester.pumpAndSettle();
     expect(find.byType(NavigationBar), findsOneWidget);
   });
 }

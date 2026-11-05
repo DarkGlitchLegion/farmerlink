@@ -10,6 +10,7 @@ import '../../../../core/services/order_service.dart';
 import '../../../../core/services/product_service.dart';
 import '../../../../core/services/profile_service.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/icon_only_navigation_bar.dart';
 import '../../../authentication/presentation/providers/authentication_provider.dart';
 import '../providers/farmer_dashboard_provider.dart';
 import '../providers/farmer_workspace_provider.dart';
@@ -21,43 +22,35 @@ class FarmerNavigationShell extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
 
   static const _destinations = [
-    NavigationDestination(
-      icon: Icon(Icons.home_outlined),
-      selectedIcon: Icon(Icons.home),
-      label: 'Home',
+    IconOnlyNavigationItem(
+      icon: Icons.dashboard_outlined,
+      activeIcon: Icons.dashboard,
     ),
-    NavigationDestination(
-      icon: Icon(Icons.inventory_2_outlined),
-      selectedIcon: Icon(Icons.inventory_2),
-      label: 'My Products',
+    IconOnlyNavigationItem(
+      icon: Icons.inventory_2_outlined,
+      activeIcon: Icons.inventory_2,
     ),
-    NavigationDestination(
-      icon: Icon(Icons.agriculture_outlined),
-      selectedIcon: Icon(Icons.agriculture),
-      label: 'Harvest Batches',
+    IconOnlyNavigationItem(
+      icon: Icons.agriculture_outlined,
+      activeIcon: Icons.agriculture,
     ),
-    NavigationDestination(
-      icon: Icon(Icons.shopping_bag_outlined),
-      selectedIcon: Icon(Icons.shopping_bag),
-      label: 'Orders',
+    IconOnlyNavigationItem(
+      icon: Icons.shopping_bag_outlined,
+      activeIcon: Icons.shopping_bag,
     ),
-    NavigationDestination(
-      icon: Icon(Icons.person_outline),
-      selectedIcon: Icon(Icons.person),
-      label: 'Profile',
+    IconOnlyNavigationItem(
+      icon: Icons.person_outline,
+      activeIcon: Icons.person,
     ),
   ];
 
   @override
   Widget build(BuildContext context) => Scaffold(
     body: navigationShell,
-    bottomNavigationBar: NavigationBar(
+    bottomNavigationBar: IconOnlyNavigationBar(
+      items: _destinations,
       selectedIndex: navigationShell.currentIndex,
-      backgroundColor: AppColors.cream,
-      indicatorColor: AppColors.accentGreen.withValues(alpha: .18),
-      labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-      destinations: _destinations,
-      onDestinationSelected: (index) => navigationShell.goBranch(
+      onSelected: (index) => navigationShell.goBranch(
         index,
         initialLocation: index == navigationShell.currentIndex,
       ),

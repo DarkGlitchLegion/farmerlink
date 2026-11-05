@@ -182,6 +182,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const AdminDashboardPage(),
         routes: [
           GoRoute(
+            path: 'profile',
+            builder: (context, state) => const AdminProfilePage(),
+          ),
+          GoRoute(
             path: ':resource',
             builder: (context, state) =>
                 AdminResourcePage(resource: state.pathParameters['resource']!),

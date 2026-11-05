@@ -43,13 +43,17 @@ void main() {
     expect(find.text('Lia Buyer'), findsOneWidget);
     expect(find.text('Available produce'), findsOneWidget);
     expect(find.text('Cart'), findsNothing);
+    expect(
+      find.descendant(of: find.byType(NavigationBar), matching: find.text('')),
+      findsNWidgets(4),
+    );
 
-    await tester.tap(find.text('Market'));
+    await tester.tap(find.byType(NavigationDestination).at(1));
     await tester.pumpAndSettle();
     expect(find.text('Find your fresh picks'), findsOneWidget);
     expect(find.text('Tomato'), findsOneWidget);
 
-    await tester.tap(find.text('Orders'));
+    await tester.tap(find.byType(NavigationDestination).at(2));
     await tester.pumpAndSettle();
     expect(find.text('Order history'), findsOneWidget);
 
@@ -77,8 +81,15 @@ void main() {
       expect(find.text('Procurement overview'), findsOneWidget);
       expect(find.text('Available suppliers'), findsOneWidget);
       expect(find.text('Cart'), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text(''),
+        ),
+        findsNWidgets(5),
+      );
 
-      await tester.tap(find.text('Wholesale'));
+      await tester.tap(find.byType(NavigationDestination).at(1));
       await tester.pumpAndSettle();
       expect(find.text('Source produce for your business'), findsOneWidget);
       await tester.ensureVisible(find.byTooltip('Place bulk order'));

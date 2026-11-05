@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/widgets/icon_only_navigation_bar.dart';
 import '../../../../../core/services/order_service.dart';
 import '../../../../../core/services/product_service.dart';
 import '../../../../authentication/domain/entities/user.dart';
@@ -115,29 +116,25 @@ class _BuyerDashboardPageState extends ConsumerState<BuyerDashboardPage> {
             children: _tabContent(data),
           ),
         ),
-        bottomNavigationBar: NavigationBar(
+        bottomNavigationBar: IconOnlyNavigationBar(
           selectedIndex: _tab,
-          onDestinationSelected: (index) => setState(() => _tab = index),
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home_rounded),
-              label: 'Home',
+          onSelected: (index) => setState(() => _tab = index),
+          items: const [
+            IconOnlyNavigationItem(
+              icon: Icons.home_outlined,
+              activeIcon: Icons.home_rounded,
             ),
-            NavigationDestination(
-              icon: Icon(Icons.storefront_outlined),
-              selectedIcon: Icon(Icons.storefront_rounded),
-              label: 'Market',
+            IconOnlyNavigationItem(
+              icon: Icons.storefront_outlined,
+              activeIcon: Icons.storefront_rounded,
             ),
-            NavigationDestination(
-              icon: Icon(Icons.receipt_long_outlined),
-              selectedIcon: Icon(Icons.receipt_long_rounded),
-              label: 'Orders',
+            IconOnlyNavigationItem(
+              icon: Icons.receipt_long_outlined,
+              activeIcon: Icons.receipt_long_rounded,
             ),
-            NavigationDestination(
-              icon: Icon(Icons.person_outline_rounded),
-              selectedIcon: Icon(Icons.person_rounded),
-              label: 'Profile',
+            IconOnlyNavigationItem(
+              icon: Icons.person_outline_rounded,
+              activeIcon: Icons.person_rounded,
             ),
           ],
         ),
