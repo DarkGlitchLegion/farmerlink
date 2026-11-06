@@ -8,6 +8,7 @@ import '../../features/authentication/presentation/providers/authentication_prov
 import '../../features/dashboard/buyer/presentation/pages/buyer_dashboard_page.dart';
 import '../../features/dashboard/business_buyer/presentation/pages/business_buyer_dashboard_page.dart';
 import '../../features/dashboard/presentation/pages/farmer_workspace_pages.dart';
+import '../../features/dashboard/shared/pages/account_profile_edit_page.dart';
 import '../../features/marketplace/presentation/public_marketplace_info_page.dart';
 
 String roleDashboardLocation(String role) => switch (role) {
@@ -71,6 +72,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 builder: (context, state) =>
                     const FarmerWorkspacePage(section: FarmerSection.home),
                 routes: [
+                  GoRoute(
+                    path: 'account-profile',
+                    builder: (context, state) =>
+                        const AccountProfileEditPage(),
+                  ),
                   GoRoute(
                     path: 'products/new',
                     builder: (context, state) =>
@@ -171,10 +177,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/dashboard/buyer',
         builder: (context, state) => const BuyerDashboardPage(),
+        routes: [
+          GoRoute(
+            path: 'account-profile',
+            builder: (context, state) => const AccountProfileEditPage(),
+          ),
+        ],
       ),
       GoRoute(
         path: '/dashboard/business-buyer',
         builder: (context, state) => const BusinessBuyerDashboardPage(),
+        routes: [
+          GoRoute(
+            path: 'account-profile',
+            builder: (context, state) => const AccountProfileEditPage(),
+          ),
+        ],
       ),
     ],
   );

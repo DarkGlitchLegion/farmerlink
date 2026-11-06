@@ -14,7 +14,6 @@ import '../../../presentation/widgets/dashboard_stat_card.dart';
 import '../../../shared/models/shopping_dashboard_models.dart';
 import '../../../shared/providers/shopping_dashboard_provider.dart';
 import '../../../shared/widgets/shopping_dashboard_widgets.dart';
-import '../../../shared/widgets/account_profile_edit_sheet.dart';
 
 class BuyerDashboardPage extends ConsumerStatefulWidget {
   const BuyerDashboardPage({super.key});
@@ -442,7 +441,7 @@ class _BuyerDashboardPageState extends ConsumerState<BuyerDashboardPage> {
           _AccountDetails(user: data.user),
           const SizedBox(height: 10),
           OutlinedButton.icon(
-            onPressed: () => _editAccountProfile(data.user),
+            onPressed: () => context.push('/dashboard/buyer/account-profile'),
             icon: const Icon(Icons.manage_accounts_outlined),
             label: const Text('Edit account profile'),
           ),
@@ -468,34 +467,6 @@ class _BuyerDashboardPageState extends ConsumerState<BuyerDashboardPage> {
       ),
     ),
   ];
-
-  Future<void> _editAccountProfile(AuthUser user) async {
-    final changes = await showModalBottomSheet<Map<String, dynamic>>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.background,
-      builder: (context) => AccountProfileEditSheet(user: user),
-    );
-    if (changes == null || changes.isEmpty || !mounted) return;
-    try {
-      await ref
-          .read(authenticationProvider.notifier)
-          .updateCurrentUserProfile(changes);
-      final updated = ref.read(authenticationProvider).user;
-      if (updated != null) await invalidateUserDashboardCache(ref, updated);
-      await _refresh();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Account profile updated.')),
-        );
-      }
-    } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(error.toString())));
-      }
-    }
-  }
 
   Future<void> _showOrderDetails(ShoppingOrder order) async {
     try {
