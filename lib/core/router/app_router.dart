@@ -8,17 +8,12 @@ import '../../features/authentication/presentation/providers/authentication_prov
 import '../../features/dashboard/buyer/presentation/pages/buyer_dashboard_page.dart';
 import '../../features/dashboard/business_buyer/presentation/pages/business_buyer_dashboard_page.dart';
 import '../../features/dashboard/presentation/pages/farmer_workspace_pages.dart';
-import '../../features/admin/presentation/admin_crud_pages.dart';
-import '../../features/admin/presentation/pages/admin_analytics_page.dart';
-import '../../features/admin/presentation/pages/admin_dashboard_page.dart';
-import '../../features/admin/presentation/pages/admin_profile_page.dart';
 import '../../features/marketplace/presentation/public_marketplace_info_page.dart';
 
 String roleDashboardLocation(String role) => switch (role) {
   'farmer' => '/dashboard/farmer',
   'buyer' => '/dashboard/buyer',
   'business_buyer' => '/dashboard/business-buyer',
-  'admin' => '/dashboard/admin',
   _ => '/login',
 };
 
@@ -27,6 +22,7 @@ String? appRouteRedirect(AuthenticationState auth, String location) {
   final isDashboard = location.startsWith('/dashboard/');
   if (auth.isAuthenticated) {
     final destination = roleDashboardLocation(auth.user!.role);
+    if (destination == '/login' && isDashboard) return '/login';
     if (destination != '/login' &&
         (isAuthPage ||
             (isDashboard &&
@@ -179,48 +175,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/dashboard/business-buyer',
         builder: (context, state) => const BusinessBuyerDashboardPage(),
-      ),
-      GoRoute(
-        path: '/dashboard/admin',
-        builder: (context, state) => const AdminDashboardPage(),
-        routes: [
-          GoRoute(
-            path: 'analytics',
-            builder: (context, state) => const AdminAnalyticsPage(),
-          ),
-          GoRoute(
-            path: 'profile',
-            builder: (context, state) => const AdminProfilePage(),
-          ),
-          GoRoute(
-            path: ':resource',
-            builder: (context, state) =>
-                AdminResourcePage(resource: state.pathParameters['resource']!),
-            routes: [
-              GoRoute(
-                path: 'new',
-                builder: (context, state) => AdminRecordFormPage(
-                  resource: state.pathParameters['resource']!,
-                ),
-              ),
-              GoRoute(
-                path: ':id',
-                builder: (context, state) => AdminRecordDetailPage(
-                  resource: state.pathParameters['resource']!,
-                  id: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
-                ),
-              ),
-              GoRoute(
-                path: ':id/edit',
-                builder: (context, state) => AdminRecordFormPage(
-                  resource: state.pathParameters['resource']!,
-                  id: int.tryParse(state.pathParameters['id'] ?? ''),
-                  initial: state.extra as Map<String, dynamic>?,
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
     ],
   );

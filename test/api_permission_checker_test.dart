@@ -41,18 +41,6 @@ void main() {
   });
 
   test(
-    'admin can administer resources and read all orders but cannot place one',
-    () {
-      allow(UserRole.admin, 'GET', '/users');
-      allow(UserRole.admin, 'GET', '/analytics/overview');
-      allow(UserRole.admin, 'DELETE', '/products/42');
-      allow(UserRole.admin, 'POST', '/harvest-batches');
-      allow(UserRole.admin, 'GET', '/orders/8/items');
-      deny(UserRole.admin, 'POST', '/orders');
-    },
-  );
-
-  test(
     'farmers can manage farm resources but not admin or report moderation',
     () {
       allow(

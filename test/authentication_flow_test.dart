@@ -23,7 +23,7 @@ void main() {
       roleDashboardLocation('business_buyer'),
       '/dashboard/business-buyer',
     );
-    expect(roleDashboardLocation('admin'), '/dashboard/admin');
+    expect(roleDashboardLocation('admin'), '/login');
   });
 
   test(
@@ -95,7 +95,7 @@ void main() {
         ),
         token: 'admin-token',
       );
-      expect(appRouteRedirect(admin, '/dashboard/admin/users'), isNull);
+      expect(appRouteRedirect(admin, '/dashboard/admin/users'), '/login');
     },
   );
 
@@ -154,6 +154,51 @@ void main() {
       expect(remote.currentUserCalls, 1);
 
       await repository.logout();
+      expect(storage.value, isNull);
+      expect(remote.token, isNull);
+    });
+
+    test('rejects unsupported roles during registration and login', () async {
+      final remote = _FakeRemote()..role = 'admin';
+      final storage = _MemoryTokenStorage();
+      final repository = AuthenticationRepositoryImpl(
+        remote: remote,
+        tokenStorage: storage,
+      );
+
+      await expectLater(
+        repository.register(
+          firstName: 'Ana',
+          middleName: 'Mae',
+          lastName: 'Santos',
+          email: 'ana@example.com',
+          phone: '+639123456789',
+          password: 'password8',
+          role: 'admin',
+        ),
+        throwsA(isA<ApiException>()),
+      );
+      expect(remote.registeredFields, isNull);
+      await expectLater(
+        repository.login('admin@example.com', 'password8'),
+        throwsA(isA<ApiException>()),
+      );
+      expect(storage.value, isNull);
+      expect(remote.token, isNull);
+    });
+
+    test('clears a saved session for an unsupported account role', () async {
+      final remote = _FakeRemote()..role = 'admin';
+      final storage = _MemoryTokenStorage()..value = 'old-token';
+      final repository = AuthenticationRepositoryImpl(
+        remote: remote,
+        tokenStorage: storage,
+      );
+
+      await expectLater(
+        repository.restoreSession(),
+        throwsA(isA<ApiException>()),
+      );
       expect(storage.value, isNull);
       expect(remote.token, isNull);
     });
@@ -303,6 +348,7 @@ void main() {
 
 class _FakeRemote implements AuthenticationRemoteDataSource {
   String? token;
+  String role = 'farmer';
   int currentUserCalls = 0;
   Map<String, String>? registeredFields;
 
@@ -312,7 +358,7 @@ class _FakeRemote implements AuthenticationRemoteDataSource {
     'middle_name': 'Mae',
     'last_name': 'Santos',
     'email': 'farmer@example.com',
-    'role': 'farmer',
+    'role': role,
     'status': 'active',
   };
 

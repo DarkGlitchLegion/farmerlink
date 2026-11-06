@@ -1,5 +1,6 @@
 import '../../../../core/storage/token_storage.dart';
 import '../../../../core/services/api_client.dart';
+import '../../../../core/permissions/user_role.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/entities/avatar_upload.dart';
 import '../../domain/repositories/authentication_repository.dart';
@@ -29,6 +30,7 @@ class AuthenticationRepositoryImpl implements AuthenticationRepository {
             as Map,
       ),
     );
+    _requireSupportedRole(response.user.role);
     try {
       await _tokenStorage.write(response.accessToken);
       _remote.setToken(response.accessToken);
@@ -54,6 +56,7 @@ class AuthenticationRepositoryImpl implements AuthenticationRepository {
     required String role,
     AvatarUpload? avatar,
   }) async {
+    _requireSupportedRole(role);
     final result = await _remote.register(
       RegisterRequestModel(
         firstName: firstName,
@@ -71,7 +74,9 @@ class AuthenticationRepositoryImpl implements AuthenticationRepository {
         'The server returned an invalid registration response.',
       );
     }
-    return UserModel.fromJson(Map<String, dynamic>.from(result));
+    final user = UserModel.fromJson(Map<String, dynamic>.from(result));
+    _requireSupportedRole(user.role);
+    return user;
   }
 
   @override
@@ -85,11 +90,12 @@ class AuthenticationRepositoryImpl implements AuthenticationRepository {
         throw const FormatException('Invalid current user response.');
       }
       final user = UserModel.fromJson(Map<String, dynamic>.from(result));
+      _requireSupportedRole(user.role);
       _remote.setRole(user.role);
       _remote.setUserId(user.id);
       return (user: user, token: token);
     } on ApiException catch (error) {
-      if (error.statusCode == 401) await logout();
+      if (error.statusCode == 401 || error.statusCode == 403) await logout();
       rethrow;
     } catch (_) {
       _remote.setRole(null);
@@ -104,5 +110,14 @@ class AuthenticationRepositoryImpl implements AuthenticationRepository {
     _remote.setRole(null);
     _remote.setUserId(null);
     await _tokenStorage.delete();
+  }
+
+  void _requireSupportedRole(String role) {
+    if (UserRole.tryParse(role) == null) {
+      throw const ApiException(
+        403,
+        'This account type is not supported by this app.',
+      );
+    }
   }
 }

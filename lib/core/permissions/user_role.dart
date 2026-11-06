@@ -1,6 +1,5 @@
 /// Roles returned by the FastAPI authentication endpoints.
 enum UserRole {
-  admin('admin'),
   farmer('farmer'),
   buyer('buyer'),
   businessBuyer('business_buyer');
