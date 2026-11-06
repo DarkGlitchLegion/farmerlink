@@ -278,7 +278,7 @@ class _BusinessBuyerDashboardPageState
                   .take(3)
                   .map(
                     (product) => MarketProductCard(
-                      key: ValueKey(product.id),
+                      key: ValueKey('product-${product.id}'),
                       product: product,
                       businessMode: true,
                       onTap: () => _showProductDetails(product),
@@ -337,7 +337,7 @@ class _BusinessBuyerDashboardPageState
                   .take(3)
                   .map(
                     (order) => ShoppingOrderCard(
-                      key: ValueKey(order.id),
+                      key: ValueKey('order-${order.id}'),
                       order: order,
                     ),
                   ),
@@ -386,7 +386,7 @@ class _BusinessBuyerDashboardPageState
           else
             ..._filteredProducts(data).map(
               (product) => MarketProductCard(
-                key: ValueKey(product.id),
+                key: ValueKey('product-${product.id}'),
                 product: product,
                 businessMode: true,
                 onTap: () => _showProductDetails(product),
@@ -451,7 +451,7 @@ class _BusinessBuyerDashboardPageState
           else
             ...data.recentOrders.map(
               (order) => ShoppingOrderCard(
-                key: ValueKey(order.id),
+                key: ValueKey('order-${order.id}'),
                 order: order,
                 onTap: () => _showOrderDetails(order),
                 onCancel:

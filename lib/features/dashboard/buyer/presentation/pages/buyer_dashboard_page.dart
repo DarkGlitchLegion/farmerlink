@@ -255,7 +255,7 @@ class _BuyerDashboardPageState extends ConsumerState<BuyerDashboardPage> {
                   .take(4)
                   .map(
                     (product) => MarketProductCard(
-                      key: ValueKey(product.id),
+                      key: ValueKey('product-${product.id}'),
                       product: product,
                       businessMode: false,
                       onOrder: () => _placeOrder(data, product),
@@ -310,7 +310,7 @@ class _BuyerDashboardPageState extends ConsumerState<BuyerDashboardPage> {
                   .take(3)
                   .map(
                     (order) => ShoppingOrderCard(
-                      key: ValueKey(order.id),
+                      key: ValueKey('order-${order.id}'),
                       order: order,
                     ),
                   ),
@@ -359,7 +359,7 @@ class _BuyerDashboardPageState extends ConsumerState<BuyerDashboardPage> {
           else
             ..._filteredProducts(data).map(
               (product) => MarketProductCard(
-                key: ValueKey(product.id),
+                key: ValueKey('product-${product.id}'),
                 product: product,
                 businessMode: false,
                 onTap: () => _showProductDetails(product),
@@ -413,7 +413,7 @@ class _BuyerDashboardPageState extends ConsumerState<BuyerDashboardPage> {
           else
             ...data.recentOrders.map(
               (order) => ShoppingOrderCard(
-                key: ValueKey(order.id),
+                key: ValueKey('order-${order.id}'),
                 order: order,
                 onTap: () => _showOrderDetails(order),
                 onCancel:
