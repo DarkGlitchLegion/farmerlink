@@ -6,6 +6,8 @@ class ProfileService {
   final ApiClient _api;
 
   Future<dynamic> getMe() => _api.get('/users/me');
+  Future<dynamic> updateMe(Map<String, dynamic> data) =>
+      _api.patch('/users/me', body: data);
   Future<dynamic> listUsers({int offset = 0, int limit = 100}) =>
       _api.get('/users', query: {'offset': offset, 'limit': limit});
   Future<dynamic> createUser(Map<String, dynamic> data) => _api.post('/users', body: data);

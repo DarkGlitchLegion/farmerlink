@@ -73,7 +73,7 @@ class _ImageFilePickerFieldState extends State<ImageFilePickerField> {
   Widget build(BuildContext context) {
     final hasExistingImage = (widget.existingImage ?? '').isNotEmpty;
     final data = widget.imageData;
-    final bytes = _decodeDataUrl(data);
+    final bytes = _decodeDataUrl(data) ?? _decodeDataUrl(widget.existingImage);
     final hasImage = bytes != null || hasExistingImage;
     return Padding(
       padding: const EdgeInsets.only(bottom: 13),

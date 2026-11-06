@@ -6,6 +6,7 @@ import 'package:http/http.dart' show ClientException;
 
 import '../../../../core/services/api_client.dart';
 import '../../../../core/services/authentication_service.dart';
+import '../../../../core/services/profile_service.dart';
 import '../../../../core/storage/token_storage.dart';
 import '../../../../core/storage/cache_snapshot_provider.dart';
 import '../../../../core/storage/cache_snapshot_store.dart';
@@ -14,6 +15,7 @@ import '../../data/repositories/authentication_repository_impl.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/entities/avatar_upload.dart';
 import '../../domain/repositories/authentication_repository.dart';
+import '../../data/models/user_model.dart';
 
 enum AuthenticationStatus {
   initial,
@@ -131,6 +133,24 @@ class AuthenticationController extends Notifier<AuthenticationState> {
       );
       return false;
     }
+  }
+
+  Future<void> updateCurrentUserProfile(Map<String, dynamic> changes) async {
+    final current = state.user;
+    final token = state.token;
+    if (!state.isAuthenticated || current == null) {
+      throw const ApiException(401, 'Sign in to update your profile.');
+    }
+    final result = await ProfileService().updateMe(changes);
+    if (result is! Map) {
+      throw const FormatException('The server returned an invalid profile.');
+    }
+    final updated = UserModel.fromJson(Map<String, dynamic>.from(result));
+    state = AuthenticationState(
+      status: AuthenticationStatus.authenticated,
+      user: updated,
+      token: token,
+    );
   }
 
   Future<void> restoreSession() async {

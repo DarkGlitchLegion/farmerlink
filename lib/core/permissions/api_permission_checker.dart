@@ -98,7 +98,7 @@ class ApiPermissionChecker {
       UserRole.buyer => _buyer,
       UserRole.businessBuyer => _businessBuyer,
     };
-    final shared = <String>{'GET /users/me'};
+    final shared = <String>{'GET /users/me', 'PATCH /users/me'};
     if (!_matches(rules, verb, normalized) &&
         !_matches(shared, verb, normalized)) {
       throw PermissionException(

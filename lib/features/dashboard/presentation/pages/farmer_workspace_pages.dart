@@ -17,6 +17,7 @@ import '../../../../core/widgets/base64_image_preview.dart';
 import '../../../authentication/presentation/providers/authentication_provider.dart';
 import '../providers/farmer_dashboard_provider.dart';
 import '../providers/farmer_workspace_provider.dart';
+import '../../shared/widgets/account_profile_edit_sheet.dart';
 
 enum FarmerSection { home, products, batches, orders, profile }
 
@@ -1323,6 +1324,44 @@ class _FarmerProfileView extends ConsumerWidget {
               ],
             ),
           ),
+        ),
+        const SizedBox(height: 10),
+        OutlinedButton.icon(
+          onPressed: () async {
+            final changes = await showModalBottomSheet<Map<String, dynamic>>(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: AppColors.background,
+              builder: (context) => AccountProfileEditSheet(user: user),
+            );
+            if (changes == null || changes.isEmpty || !context.mounted) {
+              return;
+            }
+            try {
+              await ref
+                  .read(authenticationProvider.notifier)
+                  .updateCurrentUserProfile(changes);
+              final updated = ref.read(authenticationProvider).user;
+              if (updated != null) {
+                await invalidateUserDashboardCache(ref, updated);
+              }
+              ref.invalidate(farmerWorkspaceProvider);
+              ref.invalidate(farmerDashboardProvider);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Account profile updated.')),
+                );
+              }
+            } catch (error) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(error.toString())),
+                );
+              }
+            }
+          },
+          icon: const Icon(Icons.manage_accounts_outlined),
+          label: const Text('Edit account profile'),
         ),
         const SizedBox(height: 12),
         FilledButton.icon(

@@ -17,6 +17,7 @@ import '../../../presentation/widgets/dashboard_stat_card.dart';
 import '../../../shared/models/shopping_dashboard_models.dart';
 import '../../../shared/providers/shopping_dashboard_provider.dart';
 import '../../../shared/widgets/shopping_dashboard_widgets.dart';
+import '../../../shared/widgets/account_profile_edit_sheet.dart';
 
 class BusinessBuyerDashboardPage extends ConsumerStatefulWidget {
   const BusinessBuyerDashboardPage({super.key});
@@ -477,6 +478,12 @@ class _BusinessBuyerDashboardPageState
           const ShoppingSectionHeader(title: 'Business account'),
           const SizedBox(height: 11),
           _BusinessAccountCard(user: data.user, profile: data.businessProfile),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: () => _editAccountProfile(data.user),
+            icon: const Icon(Icons.manage_accounts_outlined),
+            label: const Text('Edit account profile'),
+          ),
           OutlinedButton.icon(
             onPressed: () => context.push('/marketplace-info'),
             icon: const Icon(Icons.query_stats_outlined),
@@ -520,6 +527,34 @@ class _BusinessBuyerDashboardPageState
       ),
     ),
   ];
+
+  Future<void> _editAccountProfile(AuthUser user) async {
+    final changes = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.background,
+      builder: (context) => AccountProfileEditSheet(user: user),
+    );
+    if (changes == null || changes.isEmpty || !mounted) return;
+    try {
+      await ref
+          .read(authenticationProvider.notifier)
+          .updateCurrentUserProfile(changes);
+      final updated = ref.read(authenticationProvider).user;
+      if (updated != null) await invalidateUserDashboardCache(ref, updated);
+      await _refresh();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Account profile updated.')),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.toString())));
+      }
+    }
+  }
 
   Future<void> _editBusinessProfile(BusinessProfileData? profile) async {
     final payload = await showModalBottomSheet<Map<String, dynamic>>(
