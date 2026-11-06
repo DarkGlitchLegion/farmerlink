@@ -11,6 +11,7 @@ import '../../../../core/services/order_service.dart';
 import '../../../../core/services/product_service.dart';
 import '../../../../core/services/profile_service.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/date_helpers.dart';
 import '../../../../core/widgets/icon_only_navigation_bar.dart';
 import '../../../../core/widgets/image_file_picker_field.dart';
 import '../../../../core/widgets/base64_image_preview.dart';
@@ -1665,9 +1666,4 @@ int _asInt(dynamic value) =>
 int? _asIntOrNull(dynamic value) => value == null ? null : _asInt(value);
 DateTime? _tryDate(dynamic value) =>
     value is String ? DateTime.tryParse(value) : null;
-String _dateLabel(dynamic value) {
-  final date = _tryDate(value);
-  return date == null
-      ? '—'
-      : '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-}
+String _dateLabel(dynamic value) => formatReadableDate(value, fallback: '—');

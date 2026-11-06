@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/services/api_client.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/date_helpers.dart';
 import '../../../authentication/domain/entities/user.dart';
 import '../models/shopping_dashboard_models.dart';
 import 'agricultural_dashboard_header.dart';
@@ -840,22 +841,4 @@ String formatShoppingPeso(int amount) => _peso(amount);
 String _peso(int amount) =>
     '₱${amount.toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ',')}';
 
-String formatShoppingDate(DateTime? date) {
-  if (date == null) return 'Date unavailable';
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  final value = date.toLocal();
-  return '${months[value.month - 1]} ${value.day}, ${value.year}';
-}
+String formatShoppingDate(DateTime? date) => formatReadableDate(date);

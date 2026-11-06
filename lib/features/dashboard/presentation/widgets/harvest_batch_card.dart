@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/utils/date_helpers.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/models/dashboard_models.dart';
 
@@ -125,12 +126,14 @@ class HarvestBatchCard extends StatelessWidget {
             children: [
               _BatchDetail(
                 icon: Icons.calendar_today_outlined,
-                label: 'Harvested ${_date(batch.harvestDate)}',
+                label:
+                    'Harvested ${formatReadableDate(batch.harvestDate, fallback: '—')}',
               ),
               if (batch.expirationDate != null)
                 _BatchDetail(
                   icon: Icons.schedule_rounded,
-                  label: 'Expires ${_date(batch.expirationDate)}',
+                  label:
+                      'Expires ${formatReadableDate(batch.expirationDate, fallback: '—')}',
                 ),
               if (batch.harvestLocation.isNotEmpty)
                 _BatchDetail(
@@ -151,26 +154,6 @@ class HarvestBatchCard extends StatelessWidget {
       (_) => ',',
     );
     return '₱$grouped';
-  }
-
-  String _date(DateTime? date) {
-    if (date == null) return '—';
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    final local = date.toLocal();
-    return '${months[local.month - 1]} ${local.day}, ${local.year}';
   }
 }
 
